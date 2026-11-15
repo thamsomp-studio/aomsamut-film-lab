@@ -546,7 +546,7 @@ body.zen #settingsOpen{display:none}
  <div class="modal-title" id="modalTitle">FILM PHOTOGRAPH</div>
  <div class="modal-actions">
   <button class="primary" id="modalSaveFilm">SAVE FILM PHOTO</button>
-  <button id="modalSaveOriginal">SAVE ORIGINAL</button>
+  <button id="modalSaveOriginal">SAVE FLAT ORIGINAL</button>
   <button id="modalDelete">DELETE</button>
  </div>
 </div>
@@ -688,6 +688,30 @@ $('modalDelete').addEventListener('click',async()=>{
 
 function values(){
  return Object.fromEntries(sliders.map(id=>[id,Number($(id).value)]));
+}
+function processFlatOriginalPixels(imageData){
+ const d=imageData.data;
+ // Mild film-scan/log-inspired curve. It keeps a usable JPEG preview while
+ // retaining more highlight and shadow separation than a normal contrasty JPEG.
+ for(let i=0;i<d.length;i+=4){
+  for(let c=0;c<3;c++){
+   let x=d[i+c]/255;
+   // Gentle shadow lift + highlight compression, with a soft low-contrast curve.
+   x=0.055 + 0.89*x;
+   x=0.5 + (x-0.5)*0.76;
+   // Smooth shoulder and toe; avoid clipping near-white walls or dark detail.
+   x=x/(x+0.045)*(1.045);
+   x=Math.max(0,Math.min(1,x));
+   d[i+c]=Math.round(x*255);
+  }
+  // Slightly desaturate the flat original, without making it monochrome.
+  const y=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2];
+  const sat=0.88;
+  d[i]=Math.round(y+(d[i]-y)*sat);
+  d[i+1]=Math.round(y+(d[i+1]-y)*sat);
+  d[i+2]=Math.round(y+(d[i+2]-y)*sat);
+ }
+ return imageData;
 }
 function updateLabels(){
  const v=values();
@@ -908,7 +932,7 @@ $('resetCameraBtn').addEventListener('click',()=>{
  $('zoom').value=$('zoom').min||1;$('ev').value=0;applyTrackConstraint('zoom',Number($('zoom').value));applyTrackConstraint('exposureCompensation',0);
  message.textContent='Camera controls returned to their available defaults.';
 });
-$('openPhotoSettings').addEventListener('click',()=>{message.textContent='Photo output: JPEG from the iPhone camera stream (Safari does not expose sensor RAW/ProRAW). The app saves the finished film JPEG and untouched camera-frame original.';});
+$('openPhotoSettings').addEventListener('click',()=>{message.textContent='Photo output: JPEG from the iPhone camera stream (Safari does not expose sensor RAW/ProRAW). The app saves the finished film JPEG and flat, log-inspired original JPEG.';});
 
 
 $('reset').addEventListener('click',()=>{
@@ -1010,16 +1034,32 @@ async function takePhoto(){
  else{sh=width/ratio;sy=(height-sh)/2;}
  canvas.width=Math.round(sw);
  canvas.height=Math.round(sh);
- // Original image: no filters, grain, or colour changes.
+ // Capture a clean camera frame first. Keep this untouched frame in memory
+ // so both the flat/log-style original and the film JPEG are derived from the
+ // same capture, without degrading the film version.
  ctx.save();
  if(facing==='user'){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
  ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
  ctx.restore();
- const originalBlob=await canvasBlob(canvas);
- if(!originalBlob){message.textContent='Could not create original photograph.';return;}
- // Develop the captured source frame immediately after capture. The original
- // blob above is already preserved; only the working canvas copy is graded.
+ let cleanFrame;
  try{
+  cleanFrame=ctx.getImageData(0,0,canvas.width,canvas.height);
+  // The saved "original" is a gentle flat/log-inspired JPEG: lower contrast,
+  // slightly reduced saturation, lifted shadows and compressed highlights.
+  // This is a display-referred approximation, NOT sensor RAW or true camera log.
+  const flatFrame=new ImageData(new Uint8ClampedArray(cleanFrame.data),cleanFrame.width,cleanFrame.height);
+  processFlatOriginalPixels(flatFrame);
+  ctx.putImageData(flatFrame,0,0);
+ }catch(e){
+  console.error(e);
+  message.textContent='Could not prepare the flat original. Please try again.';
+  return;
+ }
+ const originalBlob=await canvasBlob(canvas,0.96);
+ if(!originalBlob){message.textContent='Could not create flat original photograph.';return;}
+ // Restore the clean camera frame before developing the selected film recipe.
+ try{
+  ctx.putImageData(cleanFrame,0,0);
   const frame=ctx.getImageData(0,0,canvas.width,canvas.height);
   processFilmPixels(frame,currentSettings(),photoNumber+7);
   ctx.putImageData(frame,0,0);
