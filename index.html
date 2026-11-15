@@ -165,22 +165,68 @@ header{min-height:58px;padding:calc(8px + env(safe-area-inset-top)) 16px 10px;ga
 @media(max-width:380px){header{padding-left:12px;padding-right:12px}.brand{font-size:11px;letter-spacing:1.6px}#settingsOpen{padding:9px 10px;font-size:8px}.viewfinder{height:61svh;min-height:290px}.controls{padding:0 13px;grid-template-columns:1fr 82px 1fr}.shutter{width:68px;height:68px}}
 .photoitem img{cursor:pointer}
 
+
+/* V2: manual-camera-inspired controls, with browser-supported functions only */
+:root{--bg:#0d0d0e;--panel:#242426;--line:#3a3a3d;--orange:#e94b2e;--cream:#f4f2ed}
+body{background:#0d0d0e}
+header{grid-template-columns:1fr auto auto;min-height:54px;padding-top:calc(7px + env(safe-area-inset-top));padding-bottom:8px}
+.brand{font-size:12px;letter-spacing:2px}.subbrand{font-size:8px;letter-spacing:1.5px}
+#settingsOpen{font-size:9px;padding:10px 13px;border-radius:24px;background:#202022;border:1px solid #444}
+.viewfinder{width:100%;height:min(61svh,740px);min-height:330px;border-radius:12px;background:#202022}
+.viewlabel{font-size:8px;letter-spacing:2px}.viewbottom{font-size:8px;letter-spacing:1.5px}
+.finder-tools{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:7px;z-index:4}
+.finder-tools button{border:1px solid #ffffff38;background:#10101099;color:#fff;border-radius:18px;padding:10px 9px;font-size:8px;letter-spacing:.8px;min-width:64px;backdrop-filter:blur(8px)}
+.finder-tools button.active{color:#fff;border-color:#ffffff80}.finder-tools button:disabled{opacity:.38}
+.wb-strip{padding:10px 14px 2px;background:#101011}
+.wb-heading{display:flex;justify-content:space-between;align-items:center;color:#aaa;font-size:8px;letter-spacing:1.8px;margin-bottom:7px}
+.wb-heading button{background:#252527;border:1px solid #444;color:#aaa;border-radius:18px;padding:6px 11px;font-size:8px;letter-spacing:1px}
+.wb-heading button.active{color:#fff;border-color:var(--orange)}
+.wb-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.wb-control{display:flex;flex-direction:column;gap:3px;min-width:0;background:#1c1c1e;border:1px solid #343437;border-radius:10px;padding:8px 10px}
+.wb-control span{font-size:8px;color:#999;letter-spacing:1.5px;text-align:center}
+.wb-control output{font-size:14px;color:#f3f1ed;text-align:center;font-variant-numeric:tabular-nums}
+.wb-control input{width:100%;height:18px;accent-color:var(--orange);margin:1px 0 0}
+.controls{margin:8px 0 0;min-height:78px;padding:0 16px;grid-template-columns:1fr 88px 1fr}
+.tool{font-size:8px;letter-spacing:1.2px}.shutter{width:76px;height:76px;background:#dedede;border:5px solid #f8f8f8;box-shadow:0 0 0 6px #ffffff1a}
+.sectionhead{margin:10px 16px 8px;padding-top:10px}
+.recipeName{font-size:18px}.description{font-size:9px}
+.recipes{padding:0 16px 8px;gap:6px}.recipe{flex-basis:88px;min-height:44px;border-radius:8px}
+.gallery{margin:8px 16px 0;padding-top:10px}.gallery-heading{display:flex;align-items:center;justify-content:space-between}.gallery-heading button{background:none;border:0;color:var(--orange);font-size:8px;letter-spacing:1px;padding:5px 0}.gallery.expanded #photos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}.gallery.expanded .photoitem{width:auto;min-width:0}.gallery.expanded .photoitem img{width:100%;height:auto;aspect-ratio:3/4}
+#photos{padding:8px 0 3px}.photoitem{flex-basis:66px;width:66px}.photoitem img{width:66px;height:82px;border-radius:6px}
+.settings-drawer{background:#19191b;border-color:#38383a;max-height:86svh;padding-left:18px;padding-right:18px}
+.settings-drawer .panel,.settings-drawer .camera-panel{border-color:#38383a}
+.settings-drawer .control{grid-template-columns:1fr 58px;gap:8px;margin:10px 0}
+.settings-drawer .control label{font-size:11px}.settings-drawer .control output{font-size:10px}
+.camera-tools button,.timer-select{border-radius:8px;min-height:42px}
+.camera-note{font-size:10px;line-height:1.6}
+#message{padding:7px 14px 0;font-size:9px;min-height:18px}
+@media(max-height:740px){.viewfinder{height:52svh;min-height:260px}.shutter{width:64px;height:64px}.controls{min-height:68px}}
+@media(max-width:380px){.viewfinder{height:55svh;min-height:270px}.wb-control{padding:7px}.wb-control output{font-size:12px}.controls{grid-template-columns:1fr 78px 1fr;padding:0 12px}.shutter{width:66px;height:66px}}
+
 </style>
 </head>
 <body>
 <div class="app">
 <div class="camera-stage">
 <header>
- <div><div class="brand">AOMSAMUT<span>.</span> FILM LAB</div><div class="subbrand">A DIGITAL FILM CAMERA</div></div>
+ <div><div class="brand">AOMSAMUT<span>.</span> FILM LAB</div><div class="subbrand">NTRL · JPEG · LIVE CAMERA</div></div>
  <div class="status" id="status">CAMERA OFF</div>
-<button id="settingsOpen" type="button" aria-label="Open camera settings">SETTINGS ☰</button></header>
+<button id="settingsOpen" type="button" aria-label="Open camera settings">⚙ SETTINGS</button></header>
 
 <div class="viewfinder" id="viewfinder">
  <video id="video" autoplay playsinline muted></video><canvas id="previewCanvas"></canvas>
  <div id="placeholder"><div class="symbol">◎</div><div style="letter-spacing:3px;font-size:11px">YOUR FILM JOURNEY</div><p>Start the camera to see your world<br>through a film-inspired lens.</p></div>
  <div class="grid" id="grid"></div><div id="grainPreview"></div>
  <div class="viewlabel">AOMSAMUT · LIVE VIEW</div>
- <div class="viewbottom"><span id="viewRecipe">KODAK GOLD 200</span><span>3:4</span></div>
+ <div class="viewbottom"><span id="viewRecipe">KODAK GOLD 200</span><span id="viewFormat">JPEG · 3:4</span></div>
+ <div class="finder-tools"><button id="torchBtn" type="button" aria-label="Toggle flash">FLASH OFF</button><button id="gridBtn" type="button" class="active" aria-label="Toggle grid">GRID ON</button></div>
+</div>
+<div class="wb-strip">
+ <div class="wb-heading"><span>WHITE BALANCE</span><button id="awbBtn" type="button">RESET WB</button></div>
+ <div class="wb-pair">
+  <label class="wb-control"><span>TEMP</span><output id="temperatureValue">5500 K</output><input id="temperature" type="range" min="2500" max="9000" step="100" value="5500"></label>
+  <label class="wb-control"><span>TINT</span><output id="tintValue">0</output><input id="tint" type="range" min="-50" max="50" step="1" value="0"></label>
+ </div>
 </div>
 
 <div class="controls">
@@ -206,36 +252,38 @@ header{min-height:58px;padding:calc(8px + env(safe-area-inset-top)) 16px 10px;ga
  <div class="drawer-handle"></div>
  <div class="drawer-heading"><strong>CAMERA SETTINGS</strong><button id="settingsClose" type="button" aria-label="Close settings">×</button></div>
 <div class="panel">
- <div class="paneltop"><div class="eyebrow">FILM ADJUSTMENTS</div><button class="reset" id="reset">RESET</button></div>
+ <div class="paneltop"><div class="eyebrow">FILM & COLOUR</div><button class="reset" id="reset">RESET FILM</button></div>
  <div class="control"><label for="exposure">Exposure</label><output id="exposureValue">0.0</output><input id="exposure" type="range" min="-1.5" max="1.5" step=".1" value="0"></div>
  <div class="control"><label for="warmth">Warmth</label><output id="warmthValue">0</output><input id="warmth" type="range" min="-30" max="30" step="1" value="0"></div>
  <div class="control"><label for="saturation">Saturation</label><output id="saturationValue">100%</output><input id="saturation" type="range" min="50" max="160" step="1" value="100"></div>
  <div class="control"><label for="grain">Film grain</label><output id="grainValue">15%</output><input id="grain" type="range" min="0" max="60" step="1" value="15"></div>
  <div class="control"><label for="contrast">Contrast</label><output id="contrastValue">100%</output><input id="contrast" type="range" min="75" max="130" step="1" value="100"></div>
+ <div class="control"><label for="temperature">White balance · Temperature</label><output id="temperatureValueDrawer">5500 K</output><input id="temperatureDrawer" type="range" min="2500" max="9000" step="100" value="5500"></div>
+ <div class="control"><label for="tint">White balance · Tint</label><output id="tintValueDrawer">0</output><input id="tintDrawer" type="range" min="-50" max="50" step="1" value="0"></div>
 </div>
 
 <div class="camera-panel">
- <div class="paneltop"><div class="eyebrow">CAMERA CONTROLS</div><div class="eyebrow" id="cameraModeLabel">AUTO</div></div>
+ <div class="paneltop"><div class="eyebrow">DEVICE CAMERA</div><div class="eyebrow" id="cameraModeLabel">AUTO</div></div>
  <div class="camera-tools">
-  <button id="torchBtn" type="button">FLASH · OFF</button>
-  <button id="gridBtn" type="button" class="active">GRID · ON</button>
   <button id="timerBtn" type="button">TIMER · OFF</button>
+  <button id="focusBtn" type="button">FOCUS · AUTO</button>
+  <button id="qualityBtn" type="button" class="active">JPEG · HIGH</button>
  </div>
  <div class="camera-control"><label for="zoom">Zoom</label><input id="zoom" type="range" min="1" max="1" step="0.1" value="1" disabled><output id="zoomValue">1.0×</output></div>
  <div class="camera-control"><label for="ev">Camera EV</label><input id="ev" type="range" min="-2" max="2" step="0.1" value="0" disabled><output id="evValue">0.0</output></div>
  <div class="camera-tools">
-  <button id="focusBtn" type="button">FOCUS · AUTO</button>
   <button id="timerCycleBtn" type="button">SELF TIMER · 0s</button>
-  <button id="qualityBtn" type="button" class="active">JPEG · HIGH</button>
+  <button id="resetCameraBtn" type="button">CAMERA DEFAULTS</button>
+  <button id="openPhotoSettings" type="button">PHOTO INFO</button>
  </div>
- <div class="camera-note" id="cameraNote">Camera controls activate when supported by your iPhone and Safari. Film adjustments always work independently.</div>
+ <div class="camera-note" id="cameraNote">Zoom, flash, focus and exposure compensation are enabled only when the active iPhone camera exposes them to Safari. White balance and film colour are processed in the app.</div>
 </div>
 
 </div>
 <div id="message">Start the camera to begin.</div>
 
-<div class="gallery">
- <div class="eyebrow">YOUR FILM ROLL</div><div class="description">Saved on this device · Tap a photo to view, save or delete</div>
+<div class="gallery" id="gallery">
+ <div class="gallery-heading"><div class="eyebrow">YOUR FILM ROLL</div><button id="galleryExpand" type="button">VIEW ALL</button></div><div class="description">Saved on this device · Tap a photo to view, save or delete</div>
  <div id="photos"><span id="galleryEmpty">Your photographs will appear here.</span></div>
 </div>
 <div class="footer">AOMSAMUT FILM LAB · CAMERA EDITION</div>
@@ -272,8 +320,9 @@ const recipes={
  chrome:{name:'Classic Chrome',desc:'Muted colour · Gentle contrast · Editorial mood',filter:'saturate(.78) contrast(1.13) brightness(1.02) sepia(.08)',warm:-2,sat:82,con:113}
 };
 
-const sliders=['exposure','warmth','saturation','grain','contrast'];
-const defaults={exposure:0,warmth:0,saturation:100,grain:15,contrast:100};
+const sliders=['exposure','warmth','saturation','grain','contrast','temperature','tint'];
+const defaults={exposure:0,warmth:0,saturation:100,grain:15,contrast:100,temperature:5500,tint:0};
+
 const $=id=>document.getElementById(id);
 
 // Persistent film roll: photographs remain available after closing Safari.
@@ -375,6 +424,7 @@ async function shareOrDownload(blob,name,label){
   else{console.error(e);message.textContent='Could not share this image. Please try again.';}
  }
 }
+$('galleryExpand').addEventListener('click',()=>{const expanded=$('gallery').classList.toggle('expanded');$('galleryExpand').textContent=expanded?'COLLAPSE':'VIEW ALL';});
 $('modalClose').addEventListener('click',closePhoto);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closePhoto();});
 $('photoModal').addEventListener('click',e=>{if(e.target===$('photoModal'))closePhoto();});
@@ -395,6 +445,10 @@ function updateLabels(){
  $('saturationValue').textContent=v.saturation+'%';
  $('grainValue').textContent=v.grain+'%';
  $('contrastValue').textContent=v.contrast+'%';
+ $('temperatureValue').textContent=Math.round(v.temperature)+' K';
+ $('tintValue').textContent=(v.tint>0?'+':'')+v.tint;
+ if($('temperatureValueDrawer'))$('temperatureValueDrawer').textContent=Math.round(v.temperature)+' K';
+ if($('tintValueDrawer'))$('tintValueDrawer').textContent=(v.tint>0?'+':'')+v.tint;
 }
 // One pixel-processing pipeline powers both the live preview and saved JPEG.
 // The preview is rendered at a smaller resolution for smooth performance on iPhone.
@@ -415,6 +469,8 @@ function currentSettings() {
   saturation: p.saturation * (v.saturation/100),
   contrast: p.contrast * (v.contrast/100),
   grain: v.grain,
+  temperature: v.temperature,
+  tint: v.tint,
   green: p.green,
   blue: p.blue,
   fade: p.fade
@@ -425,6 +481,11 @@ function processFilmPixels(imageData, settings, seed=1) {
  // Stable, fine-grain noise so the preview does not flicker between frames.
  for(let i=0, pixel=0;i<d.length;i+=4,pixel++){
   let r=d[i]*s.exposure, g=d[i+1]*s.exposure, b=d[i+2]*s.exposure;
+  // App-level white balance: a gentle software colour-temperature/tint correction.
+  const tempShift=(s.temperature-5500)/1000;
+  r += tempShift*5.0 + s.tint*0.24;
+  g -= s.tint*0.42;
+  b -= tempShift*5.0 - s.tint*0.18;
   r += s.warmth*0.42;
   g += s.warmth*0.07 + s.green*1.7;
   b -= s.warmth*0.34;
@@ -463,10 +524,15 @@ function updateLabels(){
  $('saturationValue').textContent=v.saturation+'%';
  $('grainValue').textContent=v.grain+'%';
  $('contrastValue').textContent=v.contrast+'%';
+ $('temperatureValue').textContent=Math.round(v.temperature)+' K';
+ $('tintValue').textContent=(v.tint>0?'+':'')+v.tint;
+ if($('temperatureValueDrawer'))$('temperatureValueDrawer').textContent=Math.round(v.temperature)+' K';
+ if($('tintValueDrawer'))$('tintValueDrawer').textContent=(v.tint>0?'+':'')+v.tint;
 }
 function updatePreview(){
  $('grainPreview').style.opacity='0';
  updateLabels();
+ if(typeof persistCameraPrefs==='function')persistCameraPrefs();
 }
 function renderLivePreview(){
  if(!stream || video.readyState<2 || !video.videoWidth) return;
@@ -516,9 +582,50 @@ function selectRecipe(key){
 }
 document.querySelectorAll('.recipe').forEach(b=>b.addEventListener('click',()=>selectRecipe(b.dataset.recipe)));
 sliders.forEach(id=>$(id).addEventListener('input',updatePreview));
+function syncWhiteBalance(source){
+ const temp=Number(source==='drawer'?$('temperatureDrawer').value:$('temperature').value);
+ const tint=Number(source==='drawer'?$('tintDrawer').value:$('tint').value);
+ $('temperature').value=temp;$('temperatureDrawer').value=temp;
+ $('tint').value=tint;$('tintDrawer').value=tint;
+ $('awbBtn').classList.remove('active');
+ updatePreview();persistCameraPrefs();
+}
+$('temperature').addEventListener('input',()=>syncWhiteBalance('main'));
+$('tint').addEventListener('input',()=>syncWhiteBalance('main'));
+$('temperatureDrawer').addEventListener('input',()=>syncWhiteBalance('drawer'));
+$('tintDrawer').addEventListener('input',()=>syncWhiteBalance('drawer'));
+$('awbBtn').addEventListener('click',()=>{
+ $('temperature').value=$('temperatureDrawer').value=5500;
+ $('tint').value=$('tintDrawer').value=0;
+ $('awbBtn').classList.add('active');
+ updatePreview();persistCameraPrefs();
+});
+function persistCameraPrefs(){
+ try{localStorage.setItem('aomsamutFilmLabPrefs',JSON.stringify({recipe:current,values:values(),gridOn,jpegQuality}));}catch(e){console.warn('Could not persist camera preferences',e);}
+}
+function restoreCameraPrefs(){
+ try{
+  const saved=JSON.parse(localStorage.getItem('aomsamutFilmLabPrefs')||'null');if(!saved)return;
+  if(saved.recipe&&recipes[saved.recipe])selectRecipe(saved.recipe);
+  if(saved.values)Object.entries(saved.values).forEach(([id,val])=>{if($(id))$(id).value=val;});
+  if(typeof saved.gridOn==='boolean'){gridOn=saved.gridOn;$('grid').style.display=gridOn?'block':'none';$('gridBtn').textContent='GRID '+(gridOn?'ON':'OFF');$('gridBtn').classList.toggle('active',gridOn);}
+  if(saved.jpegQuality)jpegQuality=saved.jpegQuality;
+  $('temperature').value=$('temperatureDrawer').value=$('temperature').value;
+  $('tint').value=$('tintDrawer').value=$('tint').value;
+  $('qualityBtn').textContent='JPEG · '+(jpegQuality>=0.98?'HIGH':'BALANCED');
+  updatePreview();
+ }catch(e){console.warn('Could not restore camera preferences',e);}
+}
+$('resetCameraBtn').addEventListener('click',()=>{
+ $('zoom').value=$('zoom').min||1;$('ev').value=0;applyTrackConstraint('zoom',Number($('zoom').value));applyTrackConstraint('exposureCompensation',0);
+ message.textContent='Camera controls returned to their available defaults.';
+});
+$('openPhotoSettings').addEventListener('click',()=>{message.textContent='Photo output: JPEG. Resolution is determined by the active camera stream; the app saves the processed film image and original capture.';});
+
 
 $('reset').addEventListener('click',()=>{
- Object.entries(defaults).forEach(([id,val])=>$(id).value=val);
+ Object.entries(defaults).forEach(([id,val])=>{if($(id))$(id).value=val;});
+ $('temperatureDrawer').value=5500;$('tintDrawer').value=0;$('awbBtn').classList.add('active');
  updatePreview();
 });
 
@@ -532,7 +639,7 @@ function setControlSupport(){
  const ec=cameraCaps.exposureCompensation;
  if(ec){ev.disabled=false;ev.min=ec.min??-2;ev.max=ec.max??2;ev.step=ec.step??0.1;ev.value=settings.exposureCompensation??0;$('evValue').textContent=Number(ev.value).toFixed(1);}
  else{ev.disabled=true;$('evValue').textContent='N/A';}
- $('torchBtn').disabled=!cameraCaps.torch;
+ $('torchBtn').disabled=!cameraCaps.torch;$('torchBtn').textContent=cameraCaps.torch?(torchOn?'FLASH ON':'FLASH OFF'):'FLASH N/A';
  $('focusBtn').disabled=!(cameraCaps.focusMode?.length);
  focusModes=cameraCaps.focusMode||[];
  $('cameraModeLabel').textContent=settings.width?`${settings.width} × ${settings.height}`:'CAMERA READY';
@@ -547,8 +654,8 @@ async function applyTrackConstraint(name,value){
 }
 $('zoom').addEventListener('input',async()=>{ $('zoomValue').textContent=Number($('zoom').value).toFixed(1)+'×';await applyTrackConstraint('zoom',Number($('zoom').value));});
 $('ev').addEventListener('input',async()=>{ $('evValue').textContent=(Number($('ev').value)>0?'+':'')+Number($('ev').value).toFixed(1);await applyTrackConstraint('exposureCompensation',Number($('ev').value));});
-$('torchBtn').addEventListener('click',async()=>{if(!cameraCaps.torch)return;const next=!torchOn;if(await applyTrackConstraint('torch',next)){torchOn=next;$('torchBtn').textContent='FLASH · '+(torchOn?'ON':'OFF');$('torchBtn').classList.toggle('active',torchOn);}});
-$('gridBtn').addEventListener('click',()=>{gridOn=!gridOn;$('grid').style.display=gridOn?'block':'none';$('gridBtn').textContent='GRID · '+(gridOn?'ON':'OFF');$('gridBtn').classList.toggle('active',gridOn);});
+$('torchBtn').addEventListener('click',async()=>{if(!cameraCaps.torch)return;const next=!torchOn;if(await applyTrackConstraint('torch',next)){torchOn=next;$('torchBtn').textContent='FLASH '+(torchOn?'ON':'OFF');$('torchBtn').classList.toggle('active',torchOn);}});
+$('gridBtn').addEventListener('click',()=>{gridOn=!gridOn;$('grid').style.display=gridOn?'block':'none';$('gridBtn').textContent='GRID '+(gridOn?'ON':'OFF');$('gridBtn').classList.toggle('active',gridOn);});
 $('timerBtn').addEventListener('click',()=>{const options=[0,3,10];selfTimer=options[(options.indexOf(selfTimer)+1)%options.length];$('timerBtn').textContent='TIMER · '+(selfTimer?selfTimer+'s':'OFF');$('timerCycleBtn').textContent='SELF TIMER · '+selfTimer+'s';});
 $('timerCycleBtn').addEventListener('click',()=>$('timerBtn').click());
 $('focusBtn').addEventListener('click',async()=>{if(!focusModes.length)return;focusModeIndex=(focusModeIndex+1)%focusModes.length;const mode=focusModes[focusModeIndex];if(await applyTrackConstraint('focusMode',mode))$('focusBtn').textContent='FOCUS · '+mode.toUpperCase();});
@@ -565,7 +672,7 @@ async function startCamera(){
   });
   video.srcObject=stream;
   await video.play();
-  torchOn=false;$('torchBtn').textContent='FLASH · OFF';$('torchBtn').classList.remove('active');
+  torchOn=false;$('torchBtn').textContent='FLASH OFF';$('torchBtn').classList.remove('active');
   setControlSupport();
   video.style.display='block';
   previewCanvas.style.display='block';
@@ -671,6 +778,7 @@ $('settingsClose').addEventListener('click',()=>setSettingsOpen(false));
 $('settingsBackdrop').addEventListener('click',()=>setSettingsOpen(false));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')setSettingsOpen(false);});
 selectRecipe('gold');
+restoreCameraPrefs();
 openFilmDatabase().then(renderGallery).catch(e=>{console.warn(e);message.textContent='Film Roll storage is unavailable in this browser session.';});
 window.addEventListener('pagehide',()=>{
  if(previewTimer)clearInterval(previewTimer);
