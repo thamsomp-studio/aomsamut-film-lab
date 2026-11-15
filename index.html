@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#171817">
-<title>AOMSAMUT FILM LAB</title>
+<title>AOMSAMUT FILM LAB v6</title>
 <style>
 :root{--bg:#171817;--cream:#f5efe2;--orange:#f26a35;--panel:#222320}
 *{box-sizing:border-box}
@@ -49,9 +49,21 @@ input[type=range]{grid-column:1/3;width:100%;accent-color:var(--orange);height:2
 #message{text-align:center;font-size:10px;color:#aaa;min-height:32px;padding-top:15px;line-height:1.5}
 .gallery{margin-top:18px;border-top:1px solid #383a35;padding-top:16px}
 #photos{display:flex;gap:9px;overflow-x:auto;padding:12px 0}
-.photoitem{flex:0 0 88px}
-.photoitem img{width:88px;height:112px;object-fit:cover;border-radius:3px}
-.photoitem button{display:block;width:100%;background:none;border:0;color:#aaa;font-size:9px;padding:7px 0}
+.photoitem{flex:0 0 104px;min-width:0}
+.photoitem img{width:104px;height:132px;object-fit:cover;border-radius:3px;display:block;background:#292b28}
+.photoitem button{display:block;width:100%;background:none;border:0;color:#aaa;font-size:9px;padding:7px 0;letter-spacing:.5px}
+.photo-actions{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.photo-actions button{border:1px solid #454641;border-radius:3px;padding:7px 2px;font-size:8px}
+.photo-actions .film-save{color:var(--orange);border-color:#8b4a31}
+#galleryEmpty{font-size:11px;color:#777;padding:8px 0}
+.modal{position:fixed;inset:0;z-index:20;background:#101110f5;display:none;flex-direction:column;align-items:center;justify-content:center;padding:22px;}
+.modal.open{display:flex}
+.modal img{max-width:100%;max-height:72vh;object-fit:contain;border-radius:4px}
+.modal-title{font-size:11px;letter-spacing:1px;color:#ddd;margin:14px 0}
+.modal-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.modal-actions button{background:#252622;border:1px solid #555;color:#eee;padding:12px 16px;border-radius:4px;font-size:10px;letter-spacing:.7px}
+.modal-actions .primary{background:var(--orange);border-color:var(--orange);color:white}
+.modal-close{position:absolute;right:20px;top:calc(18px + env(safe-area-inset-top));background:none;border:1px solid #666;color:#fff;border-radius:50%;width:38px;height:38px;font-size:20px}
 .footer{text-align:center;padding:24px 0 5px;color:#777;font-size:9px;letter-spacing:2px}
 button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 #canvas{display:none}
@@ -102,12 +114,22 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 <div id="message">Start the camera to begin.</div>
 
 <div class="gallery">
- <div class="eyebrow">YOUR FILM ROLL</div>
- <div id="photos"><span style="font-size:11px;color:#777">Your photographs will appear here.</span></div>
+ <div class="eyebrow">YOUR FILM ROLL</div><div class="description">Saved on this device · Tap a photo to view, save or delete</div>
+ <div id="photos"><span id="galleryEmpty">Your photographs will appear here.</span></div>
 </div>
 <div class="footer">AOMSAMUT FILM LAB · MADE WITH CARE</div>
 </div>
 <canvas id="canvas"></canvas>
+<div class="modal" id="photoModal" aria-hidden="true">
+ <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+ <img id="modalImage" alt="Selected film photograph">
+ <div class="modal-title" id="modalTitle">FILM PHOTOGRAPH</div>
+ <div class="modal-actions">
+  <button class="primary" id="modalSaveFilm">SAVE FILM PHOTO</button>
+  <button id="modalSaveOriginal">SAVE ORIGINAL</button>
+  <button id="modalDelete">DELETE</button>
+ </div>
+</div>
 
 <script>
 const video=document.getElementById('video');
@@ -118,6 +140,7 @@ const previewCtx=previewCanvas.getContext('2d',{willReadFrequently:true});
 let previewTimer=null;
 const message=document.getElementById('message');
 let stream=null,facing='environment',current='gold',photoNumber=0;
+let db=null, selectedPhoto=null, galleryUrls=[];
 
 const recipes={
  gold:{name:'Kodak Gold 200',desc:'Warm highlights · Golden tones · Soft contrast',filter:'sepia(.13) saturate(1.22) contrast(.94) brightness(1.06) hue-rotate(-7deg)',warm:5,sat:112,con:96},
@@ -129,6 +152,112 @@ const recipes={
 const sliders=['exposure','warmth','saturation','grain','contrast'];
 const defaults={exposure:0,warmth:0,saturation:100,grain:15,contrast:100};
 const $=id=>document.getElementById(id);
+
+// Persistent film roll: photographs remain available after closing Safari.
+function openFilmDatabase(){
+ return new Promise((resolve,reject)=>{
+  if(!('indexedDB' in window)){reject(new Error('Local photo storage is unavailable'));return;}
+  const request=indexedDB.open('AomsamutFilmLab',1);
+  request.onupgradeneeded=()=>{
+   const database=request.result;
+   if(!database.objectStoreNames.contains('photos')) database.createObjectStore('photos',{keyPath:'id',autoIncrement:true});
+  };
+  request.onsuccess=()=>{db=request.result;resolve(db);};
+  request.onerror=()=>reject(request.error);
+ });
+}
+function storePhoto(record){
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('photos','readwrite');
+  const req=tx.objectStore('photos').add(record);
+  req.onsuccess=()=>resolve(req.result);
+  req.onerror=()=>reject(req.error);
+ });
+}
+function getAllPhotos(){
+ return new Promise((resolve,reject)=>{
+  const req=db.transaction('photos','readonly').objectStore('photos').getAll();
+  req.onsuccess=()=>resolve(req.result.sort((a,b)=>b.createdAt-a.createdAt));
+  req.onerror=()=>reject(req.error);
+ });
+}
+function getPhoto(id){
+ return new Promise((resolve,reject)=>{
+  const req=db.transaction('photos','readonly').objectStore('photos').get(id);
+  req.onsuccess=()=>resolve(req.result);
+  req.onerror=()=>reject(req.error);
+ });
+}
+function deletePhoto(id){
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('photos','readwrite');
+  tx.objectStore('photos').delete(id);
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+ });
+}
+function revokeGalleryUrls(){galleryUrls.forEach(url=>URL.revokeObjectURL(url));galleryUrls=[];}
+async function renderGallery(){
+ if(!db)return;
+ revokeGalleryUrls();
+ const photos=await getAllPhotos();
+ const container=$('photos');container.innerHTML='';
+ if(!photos.length){container.innerHTML='<span id="galleryEmpty">Your photographs will appear here.</span>';return;}
+ photos.forEach(photo=>{
+  const item=document.createElement('div');item.className='photoitem';
+  const image=document.createElement('img');
+  const url=URL.createObjectURL(photo.filmBlob);galleryUrls.push(url);
+  image.src=url;image.alt=photo.filmName;image.loading='lazy';
+  image.addEventListener('click',()=>openPhoto(photo.id));
+  const actions=document.createElement('div');actions.className='photo-actions';
+  const filmBtn=document.createElement('button');filmBtn.className='film-save';filmBtn.textContent='SAVE FILM';
+  filmBtn.addEventListener('click',()=>savePhotoVersion(photo.id,'film'));
+  const originalBtn=document.createElement('button');originalBtn.textContent='ORIGINAL';
+  originalBtn.addEventListener('click',()=>savePhotoVersion(photo.id,'original'));
+  actions.append(filmBtn,originalBtn);item.append(image,actions);container.append(item);
+ });
+}
+async function openPhoto(id){
+ const photo=await getPhoto(id);if(!photo)return;
+ selectedPhoto=id;
+ const url=URL.createObjectURL(photo.filmBlob);galleryUrls.push(url);
+ $('modalImage').src=url;$('modalTitle').textContent=photo.filmName;
+ $('photoModal').classList.add('open');$('photoModal').setAttribute('aria-hidden','false');
+}
+function closePhoto(){
+ $('photoModal').classList.remove('open');$('photoModal').setAttribute('aria-hidden','true');
+ $('modalImage').removeAttribute('src');selectedPhoto=null;
+}
+async function savePhotoVersion(id,version){
+ const photo=await getPhoto(id);if(!photo)return;
+ const film=version==='film';
+ const blob=film?photo.filmBlob:photo.originalBlob;
+ const name=film?photo.filmName:photo.originalName;
+ await shareOrDownload(blob,name,film?'Film photograph':'Original photograph');
+}
+async function shareOrDownload(blob,name,label){
+ const file=new File([blob],name,{type:'image/jpeg'});
+ try{
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+   await navigator.share({files:[file],title:name,text:label+' · AOMSAMUT FILM LAB'});
+   message.textContent=label+' ready. Choose Save Image in the iPhone share sheet.';
+  }else{
+   const url=URL.createObjectURL(blob);const a=document.createElement('a');
+   a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+   message.textContent=label+' downloaded.';
+  }
+ }catch(e){
+  if(e.name==='AbortError')message.textContent=label+' remains in your Film Roll.';
+  else{console.error(e);message.textContent='Could not share this image. Please try again.';}
+ }
+}
+$('modalClose').addEventListener('click',closePhoto);
+$('photoModal').addEventListener('click',e=>{if(e.target===$('photoModal'))closePhoto();});
+$('modalSaveFilm').addEventListener('click',()=>selectedPhoto&&savePhotoVersion(selectedPhoto,'film'));
+$('modalSaveOriginal').addEventListener('click',()=>selectedPhoto&&savePhotoVersion(selectedPhoto,'original'));
+$('modalDelete').addEventListener('click',async()=>{
+ if(!selectedPhoto)return;
+ await deletePhoto(selectedPhoto);closePhoto();await renderGallery();message.textContent='Photograph deleted from your Film Roll.';
+});
 
 function values(){
  return Object.fromEntries(sliders.map(id=>[id,Number($(id).value)]));
@@ -336,57 +465,24 @@ async function takePhoto(){
  const n=String(photoNumber).padStart(3,'0');
  const originalName='AOMSAMUT-ORIGINAL-'+n+'.jpg';
  const filmName='AOMSAMUT-'+current.toUpperCase()+'-'+n+'.jpg';
- const filmUrl=URL.createObjectURL(filmBlob);
- const originalUrl=URL.createObjectURL(originalBlob);
- addToGallery(filmUrl,filmName);
- addOriginalDownload(originalUrl,originalName);
- const filmFile=new File([filmBlob],filmName,{type:'image/jpeg'});
  try{
-  // IMPORTANT: The primary Save action shares ONLY the processed film JPEG.
-  // The untouched original is offered separately as SAVE ORIGINAL.
-  if(navigator.canShare && navigator.canShare({files:[filmFile]})){
-   await navigator.share({
-    files:[filmFile],
-    title:filmName,
-    text:recipes[current].name+' — AOMSAMUT FILM LAB'
-   });
-   message.textContent='Film JPEG shared. Choose Save Image to save the edited photograph to Photos.';
-  }else{
-   const a=document.createElement('a');
-   a.href=filmUrl;a.download=filmName;a.click();
-   message.textContent='Film JPEG downloaded. The original is available separately in your film roll.';
-  }
+  const record={
+   filmName,originalName,recipe:current,
+   filmBlob,originalBlob,createdAt:Date.now(),
+   settings:currentSettings()
+  };
+  const id=await storePhoto(record);
+  await renderGallery();
+  message.textContent='Film photo and original saved to your Film Roll. Tap a thumbnail to view or save either version.';
+  // Open the photo's actions so the user can deliberately save the film version.
+  // Do not automatically share two files or risk choosing the original by mistake.
  }catch(e){
-  if(e.name==='AbortError'){
-   message.textContent='Film JPEG is ready in your film roll. Tap SAVE FILM PHOTO to share it again.';
-  }else{
-   console.error(e);
-   message.textContent='Film JPEG created. Tap SAVE FILM PHOTO in your film roll.';
-  }
+  console.error('Could not save to local Film Roll',e);
+  message.textContent='Photo created, but local storage failed. Try saving the film JPEG again.';
+  const url=URL.createObjectURL(filmBlob);
+  await shareOrDownload(filmBlob,filmName,'Film photograph');
+  URL.revokeObjectURL(url);
  }
-}
-function addOriginalDownload(url,name){
- const link=document.createElement('a');
- link.href=url;link.download=name;
- link.textContent='SAVE ORIGINAL';
- link.style.cssText='display:block;flex:0 0 88px;color:#f26a35;font-size:9px;text-align:center;padding:6px 2px;border:1px solid #454641;border-radius:3px;text-decoration:none;align-self:flex-start';
- $('photos').prepend(link);
-}
-function addToGallery(url,name){
- if(!$('photos').querySelector('img'))$('photos').innerHTML='';
- const item=document.createElement('div');item.className='photoitem';
- const img=document.createElement('img');img.src=url;img.alt=name;
- const btn=document.createElement('button');btn.textContent='SAVE FILM PHOTO';
- btn.addEventListener('click',async()=>{
-  try{
-   const response=await fetch(url);
-   const blob=await response.blob();
-   const file=new File([blob],name,{type:'image/jpeg'});
-   if(navigator.canShare?.({files:[file]}))await navigator.share({files:[file],title:name});
-   else{const a=document.createElement('a');a.href=url;a.download=name;a.click();}
-  }catch(e){message.textContent='Could not open the share sheet. Try capturing again.';}
- });
- item.append(img,btn);$('photos').prepend(item);
 }
 $('shutter').addEventListener('click',takePhoto);
 
@@ -407,8 +503,10 @@ $('viewfinder').addEventListener('click',async e=>{
 });
 
 selectRecipe('gold');
+openFilmDatabase().then(renderGallery).catch(e=>{console.warn(e);message.textContent='Film Roll storage is unavailable in this browser session.';});
 window.addEventListener('pagehide',()=>{
  if(previewTimer)clearInterval(previewTimer);
+ revokeGalleryUrls();
  if(stream)stream.getTracks().forEach(track=>track.stop());
 });
 </script>
