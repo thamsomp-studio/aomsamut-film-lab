@@ -501,7 +501,7 @@ body.zen #settingsOpen{display:none}
  <div class="setting-row"><label for="aspectRatio">Aspect ratio</label><select id="aspectRatio"><option value="3/4" selected>3:4 · PORTRAIT</option><option value="4/3">4:3 · CLASSIC</option><option value="16/9">16:9 · CINEMA</option><option value="1/1">1:1 · SQUARE</option><option value="3/2">3:2 · PHOTO</option></select></div>
  <div class="setting-row"><label for="outputQuality">JPEG quality</label><select id="outputQuality"><option value="0.98">MAXIMUM</option><option value="0.94">HIGH</option><option value="0.88">BALANCED</option></select></div>
  <div class="setting-row"><label>Direct capture resolution</label><output id="resolutionSetting">Available after camera starts</output></div>
- <p class="capability-note">Direct shutter capture is automatic. AOMSAMUT requests the highest still-photo size Safari exposes and otherwise uses the highest live camera stream resolution available. Safari does not expose the iPhone 15 Pro native 48 MP ProRAW pipeline to web apps.</p>
+ <p class="capability-note">Direct shutter capture is automatic. The shutter captures directly from the live camera at the actual resolution Safari provides, then applies your film look automatically. Safari web cameras do not expose the iPhone 15 Pro native 48 MP ProRAW pipeline.</p>
 </div>
 <div class="panel">
  <div class="paneltop"><div class="eyebrow">CAMERA BEHAVIOUR</div></div>
@@ -921,7 +921,7 @@ async function startCamera(){
  try{
   if(stream)stream.getTracks().forEach(t=>t.stop());
   stream=await navigator.mediaDevices.getUserMedia({
-   audio:false,video:{facingMode:{ideal:facing},width:{ideal:3840},height:{ideal:2160},frameRate:{ideal:30,max:30},resizeMode:{ideal:'none'}}
+   audio:false,video:{facingMode:{ideal:facing},width:{ideal:3840},height:{ideal:2160},frameRate:{ideal:30,max:30}}
   });
   video.srcObject=stream;
   await video.play();
@@ -1309,34 +1309,13 @@ document.querySelectorAll('.settings-nav button').forEach(b=>b.addEventListener(
  el.addEventListener('change',()=>{try{localStorage.setItem(key,String(el.checked));}catch(e){}});
 });
 
-const originalTakePhoto=takePhoto;
-
-/* High-quality still capture:
-   Prefer the browser's still-photo pipeline (ImageCapture) over a video frame.
-   On supported devices this can exceed the live-preview stream resolution.
-   If the browser does not expose it, fall back to the highest available stream frame.
-*/
-async function getBestStillPhotoBlob(track){
- if(typeof ImageCapture==='undefined') return null;
- try{
-  const capture=new ImageCapture(track);
-  let caps=null;
-  try{caps=await capture.getPhotoCapabilities();}catch(e){}
-  const w=Number(caps?.imageWidth?.max||0);
-  const h=Number(caps?.imageHeight?.max||0);
-  if(w>0&&h>0){
-   try{return await capture.takePhoto({imageWidth:w,imageHeight:h});}
-   catch(e){console.warn('Max-size still request was not accepted; retrying native still capture.',e);}
-  }
-  return await capture.takePhoto();
- }catch(e){
-  console.warn('Native still-photo capture unavailable; using camera stream frame.',e);
-  return null;
- }
-}
+/* V12 — reliable direct shutter capture for iPhone Safari.
+   Draw from the live video element directly. Avoid ImageCapture/createImageBitmap
+   on Safari, where still-photo APIs and large bitmap allocations can crash the tab.
+   Preserve the real stream dimensions; never upscale or claim native 48 MP. */
 async function processCanvasInTiles(targetCanvas, settings, seed=7){
  const targetCtx=targetCanvas.getContext('2d',{willReadFrequently:true});
- const tileHeight=192;
+ const tileHeight=128;
  for(let y=0;y<targetCanvas.height;y+=tileHeight){
   const h=Math.min(tileHeight,targetCanvas.height-y);
   const frame=targetCtx.getImageData(0,y,targetCanvas.width,h);
@@ -1347,69 +1326,59 @@ async function processCanvasInTiles(targetCanvas, settings, seed=7){
 }
 takePhoto=async function(){
  if(shutterBusy)return;
- if(!stream||video.readyState<2){return originalTakePhoto();}
- shutterBusy=true;$('shutter').style.opacity='.55';
- let bitmap=null,objectUrl=null;
+ if(!stream||video.readyState<2||!video.videoWidth||!video.videoHeight){
+  message.textContent='Camera is not ready yet. Start or restart the camera, then try again.';
+  return;
+ }
+ shutterBusy=true;
+ const shutter=$('shutter');
+ shutter.disabled=true;shutter.style.opacity='.55';
  try{
   if(selfTimer){for(let n=selfTimer;n>0;n--){message.textContent='Get ready… '+n;await new Promise(r=>setTimeout(r,1000));}}
-  const track=stream.getVideoTracks()[0];
-  const stillBlob=await getBestStillPhotoBlob(track);
-  let source=stillBlob;
-  if(stillBlob){
-   bitmap=await createImageBitmap(stillBlob);
-  }else{
-   const vw=video.videoWidth,vh=video.videoHeight;
-   if(!vw||!vh)throw new Error('Camera is not ready yet.');
-   // Video fallback is the actual stream resolution, never an upscaled fake 48 MP.
-   bitmap=await createImageBitmap(video);
-  }
-  const width=bitmap.width,height=bitmap.height;
-  if(!width||!height)throw new Error('The camera returned an empty image.');
+  // Re-check after timer: iOS may suspend the video stream while waiting.
+  if(!stream||video.readyState<2||!video.videoWidth||!video.videoHeight)throw new Error('Camera paused. Please restart the camera.');
+  const width=video.videoWidth,height=video.videoHeight;
   const [rw,rh]=v3State.aspect.split('/').map(Number);
   const ratio=rw/rh,sourceRatio=width/height;
   let sx=0,sy=0,sw=width,sh=height;
   if(sourceRatio>ratio){sw=height*ratio;sx=(width-sw)/2;}
   else{sh=width/ratio;sy=(height-sh)/2;}
-  // Preserve native source detail. No artificial 2560 px downscale.
-  const outputWidth=Math.max(1,Math.round(sw));
-  const outputHeight=Math.max(1,Math.round(sh));
-  canvas.width=outputWidth;canvas.height=outputHeight;
+  // Retain the full actual camera-stream resolution after aspect-ratio cropping.
+  // Do not enlarge small streams: pixel dimensions remain honest.
+  canvas.width=Math.max(1,Math.round(sw));
+  canvas.height=Math.max(1,Math.round(sh));
   ctx.save();
   if(facing==='user'&&$('mirrorFront').checked){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
-  ctx.drawImage(bitmap,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
+  ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
   ctx.restore();
-  if((ratio<1&&canvas.width>=canvas.height)||(ratio>1&&canvas.width<=canvas.height)){
-   throw new Error('Captured image orientation does not match the selected aspect ratio.');
-  }
-  // Keep an untouched, full-detail JPEG copy before applying the film recipe.
-  const originalBlob=await canvasBlob(canvas,0.99);
-  if(!originalBlob)throw new Error('Could not create the original photograph.');
-  message.textContent='Applying film colour at full captured resolution…';
+  const originalBlob=await canvasBlob(canvas,0.97);
+  if(!originalBlob)throw new Error('Could not create the original JPEG. Please try again.');
+  message.textContent='Applying your film look…';
   await processCanvasInTiles(canvas,currentSettings(),7);
-  const filmBlob=await canvasBlob(canvas,0.98);
-  if(!filmBlob)throw new Error('Could not create the film photograph.');
-  photoNumber++;const n=String(photoNumber).padStart(3,'0');
-  const location=await getOptionalLocation();
+  const filmBlob=await canvasBlob(canvas,0.96);
+  if(!filmBlob)throw new Error('Could not create the film JPEG. Please try again.');
+  photoNumber++;
+  const n=String(photoNumber).padStart(3,'0');
   const megapixels=(canvas.width*canvas.height/1000000).toFixed(1);
+  const location=await getOptionalLocation();
   const record={
    filmName:'AOMSAMUT-'+current.toUpperCase()+'-'+n+'.jpg',
    originalName:'AOMSAMUT-ORIGINAL-'+n+'.jpg',
    recipe:current,filmBlob,originalBlob,createdAt:Date.now(),
    settings:currentSettings(),aspect:v3State.aspect,
    pixelWidth:canvas.width,pixelHeight:canvas.height,
-   megapixels:Number(megapixels),captureSource:stillBlob?'native-still':'video-stream',
+   megapixels:Number(megapixels),captureSource:'live-camera-stream',
    lutName:v3State.lutName,location
   };
-  await storePhoto(record);await renderGallery();
-  message.textContent='Saved '+megapixels+' MP · '+canvas.width+' × '+canvas.height+' px · '+(stillBlob?'high-resolution still':'stream capture')+'.';
-  if($('resolutionSetting'))$('resolutionSetting').textContent=megapixels+' MP still · '+canvas.width+' × '+canvas.height;
+  await storePhoto(record);
+  await renderGallery();
+  message.textContent='Photo saved · '+megapixels+' MP · '+canvas.width+' × '+canvas.height+' px. Film look applied automatically.';
+  if($('resolutionSetting'))$('resolutionSetting').textContent=megapixels+' MP · '+canvas.width+' × '+canvas.height;
  }catch(e){
-  console.error('High-quality capture failed:',e);
-  message.textContent='High-resolution capture failed on this browser. Try restarting the camera; no upscaled photo was saved.';
+  console.error('Direct shutter capture failed:',e);
+  message.textContent=e?.message||'Capture failed. Please restart the camera and try again.';
  }finally{
-  if(bitmap)bitmap.close?.();
-  if(objectUrl)URL.revokeObjectURL(objectUrl);
-  shutterBusy=false;$('shutter').style.opacity='1';
+  shutterBusy=false;shutter.disabled=false;shutter.style.opacity='1';
  }
 };
 async function getOptionalLocation(){
