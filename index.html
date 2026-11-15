@@ -215,7 +215,18 @@ function updatePreview(){
 }
 function renderLivePreview(){
  if(!stream || video.readyState<2 || !video.videoWidth) return;
- const w=360, h=480;
+ // Render a sharper 3:4 preview. The previous 360x480 buffer was too small
+ // for a modern iPhone display and looked visibly soft when enlarged.
+ const maxPreviewHeight=960;
+ const sourceWidth=video.videoWidth, sourceHeight=video.videoHeight;
+ const sourceRatio=sourceWidth/sourceHeight;
+ const targetRatio=3/4;
+ let cropWidth=sourceWidth, cropHeight=sourceHeight;
+ if(sourceRatio>targetRatio) cropWidth=sourceHeight*targetRatio;
+ else cropHeight=sourceWidth/targetRatio;
+ const scale=Math.min(1,maxPreviewHeight/cropHeight);
+ const w=Math.max(1,Math.round(cropWidth*scale));
+ const h=Math.max(1,Math.round(cropHeight*scale));
  if(previewCanvas.width!==w || previewCanvas.height!==h){
   previewCanvas.width=w; previewCanvas.height=h;
  }
@@ -233,7 +244,7 @@ function renderLivePreview(){
 function startPreviewLoop(){
  if(previewTimer) clearInterval(previewTimer);
  renderLivePreview();
- previewTimer=setInterval(renderLivePreview,100);
+ previewTimer=setInterval(renderLivePreview,220);
 }
 function selectRecipe(key){
  current=key;
@@ -287,7 +298,7 @@ $('flip').addEventListener('click',async()=>{
  else message.textContent='Camera direction selected. Start the camera.';
 });
 
-async function canvasBlob(targetCanvas, quality=0.95) {
+async function canvasBlob(targetCanvas, quality=0.98) {
  return new Promise(resolve=>targetCanvas.toBlob(resolve,'image/jpeg',quality));
 }
 async function takePhoto(){
