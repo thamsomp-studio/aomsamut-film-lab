@@ -17,7 +17,8 @@ header{display:flex;justify-content:space-between;align-items:center;padding:20p
 .subbrand{font-size:9px;letter-spacing:2px;color:#999;margin-top:5px}
 .status{font-size:9px;letter-spacing:1.5px;color:#aaa}
 .viewfinder{position:relative;width:100%;aspect-ratio:3/4;background:#292b28;border-radius:5px;overflow:hidden;display:flex;align-items:center;justify-content:center}
-#video{width:100%;height:100%;object-fit:cover;display:none;transition:filter .12s}
+#video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+#previewCanvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
 #placeholder{text-align:center;padding:25px;color:#aaa}
 #placeholder .symbol{font-size:45px;margin-bottom:15px}
 #placeholder p{font-size:12px;line-height:1.7}
@@ -65,7 +66,7 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 </header>
 
 <div class="viewfinder" id="viewfinder">
- <video id="video" autoplay playsinline muted></video>
+ <video id="video" autoplay playsinline muted></video><canvas id="previewCanvas"></canvas>
  <div id="placeholder"><div class="symbol">◎</div><div style="letter-spacing:3px;font-size:11px">YOUR FILM JOURNEY</div><p>Start the camera to see your world<br>through a film-inspired lens.</p></div>
  <div class="grid"></div><div id="grainPreview"></div>
  <div class="viewlabel">AOMSAMUT · LIVE VIEW</div>
@@ -112,6 +113,9 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 const video=document.getElementById('video');
 const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d',{willReadFrequently:true});
+const previewCanvas=document.getElementById('previewCanvas');
+const previewCtx=previewCanvas.getContext('2d',{willReadFrequently:true});
+let previewTimer=null;
 const message=document.getElementById('message');
 let stream=null,facing='environment',current='gold',photoNumber=0;
 
@@ -137,16 +141,99 @@ function updateLabels(){
  $('grainValue').textContent=v.grain+'%';
  $('contrastValue').textContent=v.contrast+'%';
 }
-function cssFilter(){
+// One pixel-processing pipeline powers both the live preview and saved JPEG.
+// The preview is rendered at a smaller resolution for smooth performance on iPhone.
+function filmProfile() {
+ const profiles = {
+  gold:   { warmth: 5, saturation: 1.08, contrast: 0.97, green: 0.2, blue: -1.0, fade: 0.035 },
+  ultra:  { warmth: 3, saturation: 1.18, contrast: 1.07, green: 0.0, blue: -0.5, fade: 0.015 },
+  fuji:   { warmth: -4, saturation: 1.04, contrast: 0.98, green: 0.8, blue: 1.0, fade: 0.045 },
+  chrome: { warmth: -2, saturation: 0.82, contrast: 1.10, green: 0.0, blue: 0.5, fade: 0.07 }
+ };
+ return profiles[current] || profiles.gold;
+}
+function currentSettings() {
+ const v=values(), p=filmProfile();
+ return {
+  exposure: Math.pow(2,v.exposure),
+  warmth: p.warmth + v.warmth,
+  saturation: p.saturation * (v.saturation/100),
+  contrast: p.contrast * (v.contrast/100),
+  grain: v.grain,
+  green: p.green,
+  blue: p.blue,
+  fade: p.fade
+ };
+}
+function processFilmPixels(imageData, settings, seed=1) {
+ const d=imageData.data, s=settings;
+ // Stable, fine-grain noise so the preview does not flicker between frames.
+ for(let i=0, pixel=0;i<d.length;i+=4,pixel++){
+  let r=d[i]*s.exposure, g=d[i+1]*s.exposure, b=d[i+2]*s.exposure;
+  r += s.warmth*0.42;
+  g += s.warmth*0.07 + s.green*1.7;
+  b -= s.warmth*0.34;
+  b += s.blue*1.7;
+  const lum=0.2126*r+0.7152*g+0.0722*b;
+  r=lum+(r-lum)*s.saturation;
+  g=lum+(g-lum)*s.saturation;
+  b=lum+(b-lum)*s.saturation;
+  r=(r-128)*s.contrast+128;
+  g=(g-128)*s.contrast+128;
+  b=(b-128)*s.contrast+128;
+  // Gentle highlight compression and lifted film shadows.
+  r = r>190 ? 190+(r-190)*0.72 : r;
+  g = g>190 ? 190+(g-190)*0.72 : g;
+  b = b>190 ? 190+(b-190)*0.72 : b;
+  r += (255-r)*s.fade*0.12;
+  g += (255-g)*s.fade*0.12;
+  b += (255-b)*s.fade*0.12;
+  // Deterministic pseudo-random grain at pixel level.
+  let n=0;
+  if(s.grain>0){
+   let x=(pixel+seed*374761393)|0;
+   x=Math.imul(x^(x>>>13),1274126177);
+   n=(((x^(x>>>16))>>>0)/4294967295-0.5)*s.grain*0.72;
+  }
+  d[i]=Math.max(0,Math.min(255,r+n));
+  d[i+1]=Math.max(0,Math.min(255,g+n));
+  d[i+2]=Math.max(0,Math.min(255,b+n));
+ }
+ return imageData;
+}
+function updateLabels(){
  const v=values();
- const exposure=Math.pow(2,v.exposure);
- const warmth=v.warmth;
- return `${recipes[current].filter} brightness(${exposure}) saturate(${v.saturation/100}) contrast(${v.contrast/100}) sepia(${Math.max(0,warmth)/100}) hue-rotate(${Math.min(0,warmth)*.35}deg)`;
+ $('exposureValue').textContent=(v.exposure>0?'+':'')+v.exposure.toFixed(1);
+ $('warmthValue').textContent=(v.warmth>0?'+':'')+v.warmth;
+ $('saturationValue').textContent=v.saturation+'%';
+ $('grainValue').textContent=v.grain+'%';
+ $('contrastValue').textContent=v.contrast+'%';
 }
 function updatePreview(){
- video.style.filter=cssFilter();
- $('grainPreview').style.opacity=String(values().grain/100);
+ $('grainPreview').style.opacity='0';
  updateLabels();
+}
+function renderLivePreview(){
+ if(!stream || video.readyState<2 || !video.videoWidth) return;
+ const w=360, h=480;
+ if(previewCanvas.width!==w || previewCanvas.height!==h){
+  previewCanvas.width=w; previewCanvas.height=h;
+ }
+ const vw=video.videoWidth, vh=video.videoHeight, target=3/4, source=vw/vh;
+ let sx=0,sy=0,sw=vw,sh=vh;
+ if(source>target){sw=vh*target;sx=(vw-sw)/2;}
+ else{sh=vw/target;sy=(vh-sh)/2;}
+ previewCtx.drawImage(video,sx,sy,sw,sh,0,0,w,h);
+ try{
+  const frame=previewCtx.getImageData(0,0,w,h);
+  processFilmPixels(frame,currentSettings(),7);
+  previewCtx.putImageData(frame,0,0);
+ }catch(e){console.warn('Live film preview processing failed',e);}
+}
+function startPreviewLoop(){
+ if(previewTimer) clearInterval(previewTimer);
+ renderLivePreview();
+ previewTimer=setInterval(renderLivePreview,100);
 }
 function selectRecipe(key){
  current=key;
@@ -181,10 +268,12 @@ async function startCamera(){
   video.srcObject=stream;
   await video.play();
   video.style.display='block';
+  previewCanvas.style.display='block';
   $('placeholder').style.display='none';
   $('status').textContent='CAMERA READY';
   message.textContent='Choose a recipe, adjust your film and take a photograph.';
   updatePreview();
+  startPreviewLoop();
  }catch(e){
   console.error(e);
   $('status').textContent='CAMERA OFF';
@@ -198,67 +287,80 @@ $('flip').addEventListener('click',async()=>{
  else message.textContent='Camera direction selected. Start the camera.';
 });
 
-function applyGrain(imageData,amount){
- if(amount<=0)return imageData;
- const data=imageData.data;
- const strength=amount*.48;
- for(let i=0;i<data.length;i+=4){
-  const n=(Math.random()-.5)*strength;
-  data[i]=Math.max(0,Math.min(255,data[i]+n));
-  data[i+1]=Math.max(0,Math.min(255,data[i+1]+n));
-  data[i+2]=Math.max(0,Math.min(255,data[i+2]+n));
- }
- return imageData;
+async function canvasBlob(targetCanvas, quality=0.95) {
+ return new Promise(resolve=>targetCanvas.toBlob(resolve,'image/jpeg',quality));
 }
-
 async function takePhoto(){
  if(!stream||video.readyState<2){
   message.textContent='Please start the camera first.';return;
  }
- const v=values();
  const width=video.videoWidth,height=video.videoHeight;
  if(!width||!height){message.textContent='Camera is not ready yet.';return;}
-
- // Crop the source to the same 3:4 composition as the viewfinder.
- const targetRatio=3/4,sourceRatio=width/height;
+ const ratio=3/4, sourceRatio=width/height;
  let sx=0,sy=0,sw=width,sh=height;
- if(sourceRatio>targetRatio){sw=height*targetRatio;sx=(width-sw)/2;}
- else{sh=width/targetRatio;sy=(height-sh)/2;}
-
+ if(sourceRatio>ratio){sw=height*ratio;sx=(width-sw)/2;}
+ else{sh=width/ratio;sy=(height-sh)/2;}
  canvas.width=Math.round(sw);
  canvas.height=Math.round(sh);
+ // Original image: no filters, grain, or colour changes.
  ctx.save();
  if(facing==='user'){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
- ctx.filter=cssFilter();
  ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
  ctx.restore();
-
- // Add actual grain to the captured image, not just the preview overlay.
- if(v.grain>0){
+ const originalBlob=await canvasBlob(canvas);
+ if(!originalBlob){message.textContent='Could not create original photograph.';return;}
+ // Film image: apply the exact same pixel pipeline used by the live preview.
+ try{
   const frame=ctx.getImageData(0,0,canvas.width,canvas.height);
-  ctx.putImageData(applyGrain(frame,v.grain),0,0);
+  processFilmPixels(frame,currentSettings(),7);
+  ctx.putImageData(frame,0,0);
+ }catch(e){
+  console.error(e);
+  message.textContent='Film processing failed. Please try again.';
+  return;
  }
- canvas.toBlob(async blob=>{
-  if(!blob){message.textContent='Could not create the photograph. Please try again.';return;}
-  photoNumber++;
-  const fileName='AOMSAMUT-'+current.toUpperCase()+'-'+String(photoNumber).padStart(3,'0')+'.jpg';
-  const url=URL.createObjectURL(blob);
-  addToGallery(url,fileName);
-  const file=new File([blob],fileName,{type:'image/jpeg'});
-  try{
-   if(navigator.canShare&&navigator.canShare({files:[file]})){
-    await navigator.share({files:[file],title:'AOMSAMUT FILM LAB',text:recipes[current].name});
-    message.textContent='Photo ready. Choose Save Image in the iPhone share sheet.';
-   }else{
-    const a=document.createElement('a');
-    a.href=url;a.download=fileName;a.click();
-    message.textContent='Photo downloaded. Open it and save it to Photos.';
-   }
-  }catch(e){
-   if(e.name==='AbortError')message.textContent='Photo captured and added to your film roll.';
-   else message.textContent='Photo captured. Use the share or download option to save it.';
+ const filmBlob=await canvasBlob(canvas);
+ if(!filmBlob){message.textContent='Could not create film photograph.';return;}
+ photoNumber++;
+ const n=String(photoNumber).padStart(3,'0');
+ const originalName='AOMSAMUT-ORIGINAL-'+n+'.jpg';
+ const filmName='AOMSAMUT-'+current.toUpperCase()+'-'+n+'.jpg';
+ const filmUrl=URL.createObjectURL(filmBlob);
+ const originalUrl=URL.createObjectURL(originalBlob);
+ addToGallery(filmUrl,filmName);
+ addOriginalDownload(originalUrl,originalName);
+ const originalFile=new File([originalBlob],originalName,{type:'image/jpeg'});
+ const filmFile=new File([filmBlob],filmName,{type:'image/jpeg'});
+ try{
+  if(navigator.canShare && navigator.canShare({files:[originalFile,filmFile]})){
+   await navigator.share({
+    files:[originalFile,filmFile],
+    title:'AOMSAMUT FILM LAB',
+    text:'Original JPEG + '+recipes[current].name+' film JPEG'
+   });
+   message.textContent='Both versions are ready. Choose Save Images to save them to Photos.';
+  }else{
+   // Fallback: download the film JPEG; original can be downloaded separately.
+   const a=document.createElement('a');
+   a.href=filmUrl;a.download=filmName;a.click();
+   message.textContent='Film JPEG downloaded. Use SAVE ORIGINAL in your film roll for the untouched JPEG.';
   }
- },'image/jpeg',.94);
+ }catch(e){
+  if(e.name==='AbortError'){
+   message.textContent='Both JPEGs were created. Tap SHARE BOTH in the film roll to save them.';
+  }else{
+   console.error(e);
+   message.textContent='Both JPEGs were created, but sharing was unavailable.';
+   addOriginalDownload(originalUrl,originalName);
+  }
+ }
+}
+function addOriginalDownload(url,name){
+ const link=document.createElement('a');
+ link.href=url;link.download=name;
+ link.textContent='SAVE ORIGINAL';
+ link.style.cssText='display:block;flex:0 0 88px;color:#f26a35;font-size:9px;text-align:center;padding:6px 2px;border:1px solid #454641;border-radius:3px;text-decoration:none;align-self:flex-start';
+ $('photos').prepend(link);
 }
 function addToGallery(url,name){
  if(!$('photos').querySelector('img'))$('photos').innerHTML='';
@@ -280,20 +382,25 @@ $('shutter').addEventListener('click',takePhoto);
 
 $('viewfinder').addEventListener('click',async e=>{
  if(!stream)return;
- const rect=video.getBoundingClientRect();
- const x=(e.clientX-rect.left)/rect.width;
- const y=(e.clientY-rect.top)/rect.height;
  const track=stream.getVideoTracks()[0];
  try{
   const caps=track.getCapabilities?.();
   if(caps?.focusMode?.includes('single-shot')){
    await track.applyConstraints({advanced:[{focusMode:'single-shot'}]});
+   message.textContent='Auto-focus requested.';
+  }else{
+   message.textContent='Tap-to-focus is not supported by this browser camera.';
   }
- }catch(e){}
- message.textContent='Focus point selected.';
+ }catch(err){
+  message.textContent='Camera focus adjustment is not supported here.';
+ }
 });
 
 selectRecipe('gold');
+window.addEventListener('pagehide',()=>{
+ if(previewTimer)clearInterval(previewTimer);
+ if(stream)stream.getTracks().forEach(track=>track.stop());
+});
 </script>
 </body>
 </html>
