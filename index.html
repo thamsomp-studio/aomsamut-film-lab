@@ -397,6 +397,10 @@ body.zen #settingsOpen{display:none}
  .shutter{width:68px !important;height:68px !important}
 }
 
+
+/* V9 high-detail capture status */
+#resolutionSetting{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+
 </style>
 </head>
 <body>
@@ -492,7 +496,7 @@ body.zen #settingsOpen{display:none}
  <div class="setting-row"><label for="aspectRatio">Aspect ratio</label><select id="aspectRatio"><option value="3/4" selected>3:4 · PORTRAIT</option><option value="4/3">4:3 · CLASSIC</option><option value="16/9">16:9 · CINEMA</option><option value="1/1">1:1 · SQUARE</option><option value="3/2">3:2 · PHOTO</option></select></div>
  <div class="setting-row"><label for="outputQuality">JPEG quality</label><select id="outputQuality"><option value="0.98">MAXIMUM</option><option value="0.94">HIGH</option><option value="0.88">BALANCED</option></select></div>
  <div class="setting-row"><label>Camera resolution</label><output id="resolutionSetting">Available after camera starts</output></div>
- <p class="capability-note">The browser saves JPEG images at the active camera stream resolution. HEIF, TIFF, ProRAW and native sensor RAW are not exposed by this web camera.</p>
+ <p class="capability-note">The app requests a high-resolution still photo when your browser supports it; otherwise it saves at the actual camera stream resolution. HEIF, TIFF, ProRAW and native sensor RAW are not exposed by this web camera.</p>
 </div>
 <div class="panel">
  <div class="paneltop"><div class="eyebrow">CAMERA BEHAVIOUR</div></div>
@@ -509,7 +513,7 @@ body.zen #settingsOpen{display:none}
  <div class="camera-tools">
   <button id="timerBtn" type="button">TIMER · OFF</button>
   <button id="focusBtn" type="button">FOCUS · AUTO</button>
-  <button id="qualityBtn" type="button" class="active">JPEG · HIGH</button>
+  <button id="qualityBtn" type="button" class="active">JPEG · MAX DETAIL</button>
  </div>
  <div class="camera-control"><label for="zoom">Zoom</label><input id="zoom" type="range" min="1" max="1" step="0.1" value="1" disabled><output id="zoomValue">1.0×</output></div>
  <div class="camera-control"><label for="ev">Camera EV</label><input id="ev" type="range" min="-2" max="2" step="0.1" value="0" disabled><output id="evValue">0.0</output></div>
@@ -856,7 +860,7 @@ function restoreCameraPrefs(){
   if(saved.jpegQuality)jpegQuality=saved.jpegQuality;
   $('temperature').value=$('temperatureDrawer').value=$('temperature').value;
   $('tint').value=$('tintDrawer').value=$('tint').value;
-  $('qualityBtn').textContent='JPEG · '+(jpegQuality>=0.98?'HIGH':'BALANCED');
+  $('qualityBtn').textContent='JPEG · '+(jpegQuality>=0.98?'MAX':'BALANCED');
   updatePreview();
  }catch(e){console.warn('Could not restore camera preferences',e);}
 }
@@ -912,7 +916,7 @@ async function startCamera(){
  try{
   if(stream)stream.getTracks().forEach(t=>t.stop());
   stream=await navigator.mediaDevices.getUserMedia({
-   audio:false,video:{facingMode:{ideal:facing},width:{ideal:1920},height:{ideal:1440}}
+   audio:false,video:{facingMode:{ideal:facing},width:{ideal:3840},height:{ideal:2160},frameRate:{ideal:30,max:30}}
   });
   video.srcObject=stream;
   await video.play();
@@ -1291,62 +1295,107 @@ document.querySelectorAll('.settings-nav button').forEach(b=>b.addEventListener(
 });
 
 const originalTakePhoto=takePhoto;
+
+/* High-quality still capture:
+   Prefer the browser's still-photo pipeline (ImageCapture) over a video frame.
+   On supported devices this can exceed the live-preview stream resolution.
+   If the browser does not expose it, fall back to the highest available stream frame.
+*/
+async function getBestStillPhotoBlob(track){
+ if(typeof ImageCapture==='undefined') return null;
+ try{
+  const capture=new ImageCapture(track);
+  let caps=null;
+  try{caps=await capture.getPhotoCapabilities();}catch(e){}
+  const w=Number(caps?.imageWidth?.max||0);
+  const h=Number(caps?.imageHeight?.max||0);
+  if(w>0&&h>0){
+   try{return await capture.takePhoto({imageWidth:w,imageHeight:h});}
+   catch(e){console.warn('Max-size still request was not accepted; retrying native still capture.',e);}
+  }
+  return await capture.takePhoto();
+ }catch(e){
+  console.warn('Native still-photo capture unavailable; using camera stream frame.',e);
+  return null;
+ }
+}
+async function processCanvasInTiles(targetCanvas, settings, seed=7){
+ const targetCtx=targetCanvas.getContext('2d',{willReadFrequently:true});
+ const tileHeight=192;
+ for(let y=0;y<targetCanvas.height;y+=tileHeight){
+  const h=Math.min(tileHeight,targetCanvas.height-y);
+  const frame=targetCtx.getImageData(0,y,targetCanvas.width,h);
+  processFilmPixels(frame,settings,seed+Math.floor(y/tileHeight),v3State.lutMode==='baked');
+  targetCtx.putImageData(frame,0,y);
+  if(y+tileHeight<targetCanvas.height) await new Promise(resolve=>setTimeout(resolve,0));
+ }
+}
 takePhoto=async function(){
  if(shutterBusy)return;
  if(!stream||video.readyState<2){return originalTakePhoto();}
  shutterBusy=true;$('shutter').style.opacity='.55';
+ let bitmap=null,objectUrl=null;
  try{
   if(selfTimer){for(let n=selfTimer;n>0;n--){message.textContent='Get ready… '+n;await new Promise(r=>setTimeout(r,1000));}}
-  const width=video.videoWidth,height=video.videoHeight;
-  if(!width||!height){message.textContent='Camera is not ready yet.';return;}
-  // Capture must use the exact same ratio as the live viewfinder.
-  // Calculate a centered source crop, then explicitly create an output canvas
-  // whose width/height orientation matches the selected ratio.
+  const track=stream.getVideoTracks()[0];
+  const stillBlob=await getBestStillPhotoBlob(track);
+  let source=stillBlob;
+  if(stillBlob){
+   bitmap=await createImageBitmap(stillBlob);
+  }else{
+   const vw=video.videoWidth,vh=video.videoHeight;
+   if(!vw||!vh)throw new Error('Camera is not ready yet.');
+   // Video fallback is the actual stream resolution, never an upscaled fake 48 MP.
+   bitmap=await createImageBitmap(video);
+  }
+  const width=bitmap.width,height=bitmap.height;
+  if(!width||!height)throw new Error('The camera returned an empty image.');
   const [rw,rh]=v3State.aspect.split('/').map(Number);
   const ratio=rw/rh,sourceRatio=width/height;
   let sx=0,sy=0,sw=width,sh=height;
   if(sourceRatio>ratio){sw=height*ratio;sx=(width-sw)/2;}
   else{sh=width/ratio;sy=(height-sh)/2;}
-  const scale=Math.min(1,2560/Math.max(sw,sh));
-  let outputWidth=Math.max(1,Math.round(sw*scale));
-  let outputHeight=Math.max(1,Math.round(sh*scale));
-  // Enforce portrait/landscape/square orientation from the selected ratio.
-  if(ratio<1) outputWidth=Math.max(1,Math.round(outputHeight*ratio));
-  else if(ratio>1) outputHeight=Math.max(1,Math.round(outputWidth/ratio));
-  canvas.width=outputWidth;
-  canvas.height=outputHeight;
+  // Preserve native source detail. No artificial 2560 px downscale.
+  const outputWidth=Math.max(1,Math.round(sw));
+  const outputHeight=Math.max(1,Math.round(sh));
+  canvas.width=outputWidth;canvas.height=outputHeight;
   ctx.save();
   if(facing==='user'&&$('mirrorFront').checked){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
-  ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
+  ctx.drawImage(bitmap,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
   ctx.restore();
-  if((ratio<1 && canvas.width>=canvas.height) || (ratio>1 && canvas.width<=canvas.height)){
-    throw new Error('Captured canvas orientation does not match selected aspect ratio');
+  if((ratio<1&&canvas.width>=canvas.height)||(ratio>1&&canvas.width<=canvas.height)){
+   throw new Error('Captured image orientation does not match the selected aspect ratio.');
   }
-  const originalBlob=await canvasBlob(canvas);
-  if(!originalBlob){message.textContent='Could not create original photograph.';return;}
-  const frame=ctx.getImageData(0,0,canvas.width,canvas.height);
-  processFilmPixels(frame,currentSettings(),7,v3State.lutMode==='baked');
-  ctx.putImageData(frame,0,0);
-  const filmBlob=await canvasBlob(canvas);
-  if(!filmBlob){message.textContent='Could not create film photograph.';return;}
+  // Keep an untouched, full-detail JPEG copy before applying the film recipe.
+  const originalBlob=await canvasBlob(canvas,0.99);
+  if(!originalBlob)throw new Error('Could not create the original photograph.');
+  message.textContent='Applying film colour at full captured resolution…';
+  await processCanvasInTiles(canvas,currentSettings(),7);
+  const filmBlob=await canvasBlob(canvas,0.98);
+  if(!filmBlob)throw new Error('Could not create the film photograph.');
   photoNumber++;const n=String(photoNumber).padStart(3,'0');
   const location=await getOptionalLocation();
+  const megapixels=(canvas.width*canvas.height/1000000).toFixed(1);
   const record={
    filmName:'AOMSAMUT-'+current.toUpperCase()+'-'+n+'.jpg',
    originalName:'AOMSAMUT-ORIGINAL-'+n+'.jpg',
    recipe:current,filmBlob,originalBlob,createdAt:Date.now(),
    settings:currentSettings(),aspect:v3State.aspect,
-   pixelWidth:canvas.width,pixelHeight:canvas.height,lutName:v3State.lutName,
-   location
+   pixelWidth:canvas.width,pixelHeight:canvas.height,
+   megapixels:Number(megapixels),captureSource:stillBlob?'native-still':'video-stream',
+   lutName:v3State.lutName,location
   };
-  try{
-   await storePhoto(record);await renderGallery();
-   message.textContent='Saved '+v3State.aspect+' photo ('+canvas.width+' × '+canvas.height+' px) to your Film Roll.';
-  }catch(e){
-   console.error(e);message.textContent='Photo captured, but local Film Roll storage failed.';
-  }
- }catch(e){console.error(e);message.textContent='Could not capture this photograph. Please try again.';}
- finally{shutterBusy=false;$('shutter').style.opacity='1';}
+  await storePhoto(record);await renderGallery();
+  message.textContent='Saved '+megapixels+' MP · '+canvas.width+' × '+canvas.height+' px · '+(stillBlob?'high-resolution still':'stream capture')+'.';
+  if($('resolutionSetting'))$('resolutionSetting').textContent=megapixels+' MP still · '+canvas.width+' × '+canvas.height;
+ }catch(e){
+  console.error('High-quality capture failed:',e);
+  message.textContent='High-resolution capture failed on this browser. Try restarting the camera; no upscaled photo was saved.';
+ }finally{
+  if(bitmap)bitmap.close?.();
+  if(objectUrl)URL.revokeObjectURL(objectUrl);
+  shutterBusy=false;$('shutter').style.opacity='1';
+ }
 };
 async function getOptionalLocation(){
  if(!$('geotagging')?.checked||!navigator.geolocation)return null;
