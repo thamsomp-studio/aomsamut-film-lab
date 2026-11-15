@@ -334,7 +334,7 @@ body.zen #settingsOpen{display:none}
  height:auto;
  min-height:0;
  max-height:none;
- aspect-ratio:4/3;
+ aspect-ratio:3/4;
  margin:0 auto;
  border-radius:14px;
 }
@@ -389,7 +389,7 @@ body.zen #settingsOpen{display:none}
 <div class="camera-stage">
 <header class="camera-topbar">
  <button class="round-control" id="looksOpen" type="button" aria-label="Open looks">◉</button>
- <div class="top-readout"><div class="brand">AOMSAMUT<span>.</span> FILM LAB</div><div class="subbrand" id="topFormat">JPEG · 12 MP* · 4:3</div></div>
+ <div class="top-readout"><div class="brand">AOMSAMUT<span>.</span> FILM LAB</div><div class="subbrand" id="topFormat">JPEG · 12 MP* · 3:4</div></div>
  <div class="top-actions"><span class="status" id="status">CAMERA OFF</span><button id="settingsOpen" type="button" aria-label="Open camera settings">☰</button></div>
 </header>
 
@@ -474,7 +474,7 @@ body.zen #settingsOpen{display:none}
 
 <div class="panel">
  <div class="paneltop"><div class="eyebrow">PHOTO FORMAT</div><span class="eyebrow" id="formatSupport">JPEG · BROWSER OUTPUT</span></div>
- <div class="setting-row"><label for="aspectRatio">Aspect ratio</label><select id="aspectRatio"><option value="4/3">4:3 · CLASSIC</option><option value="3/4">3:4 · PORTRAIT</option><option value="16/9">16:9 · CINEMA</option><option value="1/1">1:1 · SQUARE</option><option value="3/2">3:2 · PHOTO</option></select></div>
+ <div class="setting-row"><label for="aspectRatio">Aspect ratio</label><select id="aspectRatio"><option value="3/4" selected>3:4 · PORTRAIT</option><option value="4/3">4:3 · CLASSIC</option><option value="16/9">16:9 · CINEMA</option><option value="1/1">1:1 · SQUARE</option><option value="3/2">3:2 · PHOTO</option></select></div>
  <div class="setting-row"><label for="outputQuality">JPEG quality</label><select id="outputQuality"><option value="0.98">MAXIMUM</option><option value="0.94">HIGH</option><option value="0.88">BALANCED</option></select></div>
  <div class="setting-row"><label>Camera resolution</label><output id="resolutionSetting">Available after camera starts</output></div>
  <p class="capability-note">The browser saves JPEG images at the active camera stream resolution. HEIF, TIFF, ProRAW and native sensor RAW are not exposed by this web camera.</p>
@@ -767,7 +767,7 @@ function renderLivePreview(){
  // for a modern iPhone display and looked visibly soft when enlarged.
  const maxPreviewHeight=1440;
  const sourceWidth=video.videoWidth, sourceHeight=video.videoHeight;
- const selected=$('aspectRatio')?.value||'4/3';
+ const selected=$('aspectRatio')?.value||'3/4';
  const [aspectW,aspectH]=selected.split('/').map(Number);
  const targetRatio=aspectW/aspectH;
  const sourceRatio=sourceWidth/sourceHeight;
@@ -935,7 +935,7 @@ async function takePhoto(){
  try{if(selfTimer){for(let n=selfTimer;n>0;n--){message.textContent='Get ready… '+n;await new Promise(r=>setTimeout(r,1000));}}
  const width=video.videoWidth,height=video.videoHeight;
  if(!width||!height){message.textContent='Camera is not ready yet.';return;}
- const selected=$('aspectRatio')?.value||'4/3'; const [aspectW,aspectH]=selected.split('/').map(Number); const ratio=aspectW/aspectH, sourceRatio=width/height;
+ const selected=$('aspectRatio')?.value||'3/4'; const [aspectW,aspectH]=selected.split('/').map(Number); const ratio=aspectW/aspectH, sourceRatio=width/height;
  let sx=0,sy=0,sw=width,sh=height;
  if(sourceRatio>ratio){sw=height*ratio;sx=(width-sw)/2;}
  else{sh=width/ratio;sy=(height-sh)/2;}
@@ -1016,7 +1016,7 @@ window.addEventListener('pagehide',()=>{
 });
 
 // ===== V3 CAMERA SYSTEM =====
-const v3State={priority:'A',aspect:'4/3',zen:false,reticle:false,wbPreset:'AWB',processing:'standard',lutName:'None',lutIntensity:100,lutMode:'baked',lut:null,geotagging:false};
+const v3State={priority:'A',aspect:'3/4',zen:false,reticle:false,wbPreset:'AWB',processing:'standard',lutName:'None',lutIntensity:100,lutMode:'baked',lut:null,geotagging:false};
 const panel=$('controlPanel'), panelBody=$('controlPanelBody');
 function openPanel(title,content){
  $('controlPanelTitle').textContent=title.toUpperCase();
@@ -1284,7 +1284,7 @@ takePhoto=async function(){
   if(selfTimer){for(let n=selfTimer;n>0;n--){message.textContent='Get ready… '+n;await new Promise(r=>setTimeout(r,1000));}}
   const width=video.videoWidth,height=video.videoHeight;
   if(!width||!height){message.textContent='Camera is not ready yet.';return;}
-  const [rw,rh]=v3State.aspect.split('/').map(Number),ratio=rh/rw,sourceRatio=width/height;
+  const [rw,rh]=v3State.aspect.split('/').map(Number),ratio=rw/rh,sourceRatio=width/height;
   let sx=0,sy=0,sw=width,sh=height;
   if(sourceRatio>ratio){sw=height*ratio;sx=(width-sw)/2;}else{sh=width/ratio;sy=(height-sh)/2;}
   canvas.width=Math.round(sw);canvas.height=Math.round(sh);
@@ -1345,6 +1345,7 @@ $('shutter').addEventListener('click',async()=>{
 const oldUpdatePreview=updatePreview;
 updatePreview=function(){oldUpdatePreview();updateExposureReadouts();};
 $('reticle').classList.toggle('on',v3State.reticle);
+setAspect(v3State.aspect);
 restoreCameraPrefs();
 if($('returnCamera').checked&&navigator.mediaDevices?.getUserMedia){/* User gesture may still be required by iOS; do not auto-prompt. */}
 
