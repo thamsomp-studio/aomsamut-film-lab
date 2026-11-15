@@ -459,14 +459,18 @@ body.zen #settingsOpen{display:none}
 </div>
 <div class="sectionhead">
  <div><div class="eyebrow">FILM SIMULATION</div><div class="recipeName" id="recipeTitle">Kodak Gold 200</div><div class="description" id="recipeDesc">Golden highlights · Natural skin · Soft film contrast</div></div>
- <div class="eyebrow" id="recipeCount">01 / 04</div>
+ <div class="eyebrow" id="recipeCount">01 / 08</div>
 </div>
 
 <div class="recipes">
- <button class="recipe active" data-recipe="gold">GOLD 200<small>KODAK STYLE</small></button>
- <button class="recipe" data-recipe="ultra">ULTRAMAX<small>KODAK STYLE</small></button>
- <button class="recipe" data-recipe="fuji">FUJI 400<small>FUJI STYLE</small></button>
- <button class="recipe" data-recipe="chrome">CHROME<small>FUJI STYLE</small></button>
+ <button class="recipe active" data-recipe="gold">GOLD 200<small>KODAK</small></button>
+ <button class="recipe" data-recipe="ultra">ULTRAMAX<small>KODAK</small></button>
+ <button class="recipe" data-recipe="fuji">FUJI 400<small>FUJIFILM</small></button>
+ <button class="recipe" data-recipe="chrome">CHROME<small>FUJIFILM</small></button>
+ <button class="recipe" data-recipe="portra">PORTRA 400<small>KODAK</small></button>
+ <button class="recipe" data-recipe="portra800">PORTRA 800<small>KODAK</small></button>
+ <button class="recipe" data-recipe="fuji400h">PRO 400H<small>FUJIFILM</small></button>
+ <button class="recipe" data-recipe="ektar">EKTAR 100<small>KODAK</small></button>
 </div>
 
 
@@ -565,10 +569,14 @@ let cameraCaps={}, torchOn=false, gridOn=true, selfTimer=0, jpegQuality=0.98, fo
 let focusModes=[];
 
 const recipes={
- gold:{name:'Kodak Gold 200',desc:'Neutral whites · Gentle warmth · Natural film colour',filter:'saturate(1.02) contrast(.98) brightness(1.00)',warm:1,sat:101,con:98},
- ultra:{name:'Kodak Ultramax 400',desc:'Lively colour · Natural warmth · Moderate contrast',filter:'saturate(1.08) contrast(1.02) brightness(1.00)',warm:1,sat:105,con:102},
- fuji:{name:'Fujifilm 400',desc:'Fresh greens · Neutral highlights · Soft contrast',filter:'saturate(1.02) contrast(.98) brightness(1.00)',warm:0,sat:102,con:98},
- chrome:{name:'Classic Chrome',desc:'Muted colour · Restrained contrast · Clean whites',filter:'saturate(.91) contrast(1.02) brightness(1.00)',warm:0,sat:91,con:102}
+ gold:{name:'Kodak Gold 200',short:'GOLD 200',desc:'Warm sunlit highlights · Creamy whites · Gentle nostalgic colour',filter:'',warm:1,sat:101,con:98},
+ ultra:{name:'Kodak Ultramax 400',short:'ULTRAMAX',desc:'Lively travel colour · Warm skin · Rich but natural greens',filter:'',warm:1,sat:105,con:102},
+ fuji:{name:'Fujifilm 400',short:'FUJI 400',desc:'Fresh greens · Soft daylight · Calm natural skin tones',filter:'',warm:0,sat:102,con:98},
+ chrome:{name:'Fujifilm Classic Chrome',short:'CHROME',desc:'Muted editorial colour · Earthy shadows · Restrained saturation',filter:'',warm:0,sat:91,con:102},
+ portra:{name:'Kodak Portra 400',short:'PORTRA 400',desc:'Soft portrait colour · Warm skin · Airy highlights · Open shadows',filter:'',warm:1,sat:97,con:96},
+ portra800:{name:'Kodak Portra 800',short:'PORTRA 800',desc:'Warm late-afternoon tones · Gentle grain · Deeper cinematic shadows',filter:'',warm:2,sat:96,con:98},
+ fuji400h:{name:'Fujifilm Pro 400H',short:'PRO 400H',desc:'Pastel greens · Delicate pinks · Soft creamy highlights',filter:'',warm:0,sat:93,con:94},
+ ektar:{name:'Kodak Ektar 100',short:'EKTAR 100',desc:'Clean vivid colour · Rich landscapes · Crisp daylight',filter:'',warm:0,sat:108,con:103}
 };
 
 const sliders=['exposure','warmth','saturation','grain','contrast','temperature','tint'];
@@ -691,25 +699,28 @@ function values(){
 }
 function processFlatOriginalPixels(imageData){
  const d=imageData.data;
- // Mild film-scan/log-inspired curve. It keeps a usable JPEG preview while
- // retaining more highlight and shadow separation than a normal contrasty JPEG.
+ // Strong, neutral LOG-inspired display transform for the saved original.
+ // Lift the toe, compress the shoulder and lower chroma; do not add a film tint.
+ // This is intentionally very flat-looking, but remains an 8-bit JPEG rendering,
+ // not sensor RAW or a true camera LOG transfer function.
+ const blackLift=0.17;
+ const tonalRange=0.66;
+ const saturation=0.72;
  for(let i=0;i<d.length;i+=4){
-  for(let c=0;c<3;c++){
-   let x=d[i+c]/255;
-   // Gentle shadow lift + highlight compression, with a soft low-contrast curve.
-   x=0.055 + 0.89*x;
-   x=0.5 + (x-0.5)*0.76;
-   // Smooth shoulder and toe; avoid clipping near-white walls or dark detail.
-   x=x/(x+0.045)*(1.045);
-   x=Math.max(0,Math.min(1,x));
-   d[i+c]=Math.round(x*255);
-  }
-  // Slightly desaturate the flat original, without making it monochrome.
-  const y=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2];
-  const sat=0.88;
-  d[i]=Math.round(y+(d[i]-y)*sat);
-  d[i+1]=Math.round(y+(d[i+1]-y)*sat);
-  d[i+2]=Math.round(y+(d[i+2]-y)*sat);
+  const r=d[i]/255;
+  const g=d[i+1]/255;
+  const b=d[i+2]/255;
+  let rr=blackLift+tonalRange*r;
+  let gg=blackLift+tonalRange*g;
+  let bb=blackLift+tonalRange*b;
+  // Keep RGB channels neutral and preserve a little natural colour separation.
+  const y=0.2126*rr+0.7152*gg+0.0722*bb;
+  rr=y+(rr-y)*saturation;
+  gg=y+(gg-y)*saturation;
+  bb=y+(bb-y)*saturation;
+  d[i]=Math.round(Math.max(0,Math.min(1,rr))*255);
+  d[i+1]=Math.round(Math.max(0,Math.min(1,gg))*255);
+  d[i+2]=Math.round(Math.max(0,Math.min(1,bb))*255);
  }
  return imageData;
 }
@@ -728,29 +739,17 @@ function updateLabels(){
 // One pixel-processing pipeline powers both the live preview and saved JPEG.
 // The preview is rendered at a smaller resolution for smooth performance on iPhone.
 function filmProfile() {
- // Raw-style starting point: preserve neutral whites and natural colour.
- // Film character is added gently after capture, not by heavily tinting the base.
+ // Eight restrained, reference-inspired colour stocks. The look is developed
+ // from the camera JPEG immediately after capture; it is not a sensor RAW pipeline.
  const profiles = {
-  gold: {
-   warmth: 0.35, saturation: 1.005, contrast: 0.975,
-   green: 0.0, blue: 0.0, fade: 0.008,
-   highlightWarmth: 0.35, shadowCool: 0.18, shoulder: 0.09, toe: 0.006
-  },
-  ultra: {
-   warmth: 0.45, saturation: 1.045, contrast: 1.005,
-   green: 0.0, blue: -0.05, fade: 0.004,
-   highlightWarmth: 0.3, shadowCool: 0.15, shoulder: 0.075, toe: 0.004
-  },
-  fuji: {
-   warmth: -0.2, saturation: 1.015, contrast: 0.975,
-   green: 0.08, blue: 0.12, fade: 0.01,
-   highlightWarmth: 0.08, shadowCool: 0.25, shoulder: 0.09, toe: 0.008
-  },
-  chrome: {
-   warmth: -0.15, saturation: 0.91, contrast: 1.015,
-   green: 0.0, blue: 0.12, fade: 0.012,
-   highlightWarmth: 0.06, shadowCool: 0.2, shoulder: 0.08, toe: 0.01
-  }
+  gold:      {warmth:0.85,saturation:1.015,contrast:0.975,green:0.00,blue:0.00,fade:0.018,highlightWarmth:0.75,shadowCool:0.12,shoulder:0.105,toe:0.014,grain:7},
+  ultra:     {warmth:0.75,saturation:1.065,contrast:1.005,green:0.01,blue:-0.02,fade:0.010,highlightWarmth:0.55,shadowCool:0.10,shoulder:0.075,toe:0.008,grain:9},
+  fuji:      {warmth:0.05,saturation:1.015,contrast:0.965,green:0.035,blue:0.08,fade:0.020,highlightWarmth:0.18,shadowCool:0.28,shoulder:0.11,toe:0.016,grain:7},
+  chrome:    {warmth:-0.12,saturation:0.91,contrast:0.985,green:0.035,blue:0.12,fade:0.026,highlightWarmth:0.05,shadowCool:0.28,shoulder:0.10,toe:0.020,grain:6},
+  portra:    {warmth:0.55,saturation:0.965,contrast:0.945,green:0.005,blue:0.015,fade:0.032,highlightWarmth:0.62,shadowCool:0.12,shoulder:0.15,toe:0.026,grain:8},
+  portra800: {warmth:0.72,saturation:0.955,contrast:0.975,green:0.015,blue:-0.005,fade:0.020,highlightWarmth:0.58,shadowCool:0.16,shoulder:0.12,toe:0.018,grain:12},
+  fuji400h:  {warmth:0.10,saturation:0.925,contrast:0.925,green:0.055,blue:0.075,fade:0.038,highlightWarmth:0.22,shadowCool:0.22,shoulder:0.16,toe:0.030,grain:6},
+  ektar:     {warmth:0.10,saturation:1.085,contrast:1.015,green:0.015,blue:0.025,fade:0.008,highlightWarmth:0.16,shadowCool:0.08,shoulder:0.085,toe:0.008,grain:5}
  };
  return profiles[current] || profiles.gold;
 }
@@ -761,7 +760,7 @@ function currentSettings() {
   warmth: p.warmth + v.warmth,
   saturation: p.saturation * (v.saturation/100),
   contrast: p.contrast * (v.contrast/100),
-  grain: v.grain,
+  grain: p.grain + v.grain,
   temperature: v.temperature,
   tint: v.tint,
   green: p.green,
@@ -775,53 +774,37 @@ function currentSettings() {
 }
 function processFilmPixels(imageData, settings, seed=1) {
  const d=imageData.data, s=settings;
- const exposure=s.exposure||1;
- const saturation=s.saturation||1;
- const contrast=s.contrast||1;
- const warmth=s.warmth||0;
- const tempShift=((s.temperature||5500)-5500)/1000;
- const tint=s.tint||0;
- const fade=s.fade||0;
- const grainAmount=Math.max(0,s.grain||0);
-
- // Build three 256-entry tone tables once per image, rather than running
- // expensive gamma/power functions for every channel of every pixel.
- const warm=Math.max(-0.035,Math.min(0.035,(warmth*0.0012)+(tempShift*0.006)));
- const green=Math.max(-0.025,Math.min(0.025,(tint*-0.001)+(s.green||0)*0.001));
- const blueBias=s.blue||0;
- const tableR=new Uint8Array(256), tableG=new Uint8Array(256), tableB=new Uint8Array(256);
- const makeTable=(table,mult,offset)=>{
-  for(let i=0;i<256;i++){
-   let v=(i/255)*exposure*mult+offset;
-   // Very gentle shoulder: retain highlight detail without flattening the image.
-   v=Math.max(0,Math.min(1,v));
-   v=v*(1+(s.shoulder||0.04)*0.18)/(1+v*(s.shoulder||0.04)*0.18);
-   v=v+fade*0.0005*(1-v);
-   table[i]=Math.max(0,Math.min(255,Math.round(v*255)));
-  }
- };
- makeTable(tableR,1+warm,0);
- makeTable(tableG,1+green,0);
- makeTable(tableB,1-warm*0.8+blueBias*0.0005,0);
-
- const sat=Math.max(0.7,Math.min(1.25,saturation));
- const con=Math.max(0.88,Math.min(1.12,contrast));
- const pivot=118;
+ const exposure=s.exposure||1, saturation=s.saturation||1, contrast=s.contrast||1;
+ const warmth=s.warmth||0, fade=s.fade||0, grainAmount=Math.max(0,s.grain||0);
+ const tempShift=((s.temperature||5500)-5500)/1000, tint=s.tint||0;
  let noiseSeed=(seed|0)||1;
+ const pivot=118;
  for(let i=0;i<d.length;i+=4){
-  let r=tableR[d[i]],g=tableG[d[i+1]],b=tableB[d[i+2]];
-  const y=0.2126*r+0.7152*g+0.0722*b;
-  r=y+(r-y)*sat; g=y+(g-y)*sat; b=y+(b-y)*sat;
-  r=pivot+(r-pivot)*con; g=pivot+(g-pivot)*con; b=pivot+(b-pivot)*con;
+  let r=d[i]*exposure, g=d[i+1]*exposure, b=d[i+2]*exposure;
+  const y=(0.2126*r+0.7152*g+0.0722*b)/255;
+  const shadows=(1-y)*(1-y), highlights=y*y;
+  // Warm the light, gently cool the deepest shadows, and keep whites neutral.
+  const warmBias=(warmth*1.8)+(tempShift*1.2);
+  r += warmBias + (s.highlightWarmth||0)*2.8*highlights - (s.shadowCool||0)*1.2*shadows;
+  g += (s.green||0)*3.2 + tint*0.45;
+  b += -warmBias*0.72 + (s.blue||0)*2.2 + (s.shadowCool||0)*2.5*shadows;
+  // A gentle toe and shoulder keep detail in dark fabric and bright skies.
+  const toe=(s.toe||0)*255, shoulder=(s.shoulder||0);
+  r= r + toe*(1-r/255); g=g+toe*(1-g/255); b=b+toe*(1-b/255);
+  const compress=v=>{const x=Math.max(0,Math.min(1,v/255));return (x/(1+shoulder*x))*255*(1+shoulder);};
+  r=compress(r);g=compress(g);b=compress(b);
+  const fadeMix=fade*0.65;
+  r=r*(1-fadeMix)+128*fadeMix;g=g*(1-fadeMix)+128*fadeMix;b=b*(1-fadeMix)+128*fadeMix;
+  const lum=0.2126*r+0.7152*g+0.0722*b;
+  r=lum+(r-lum)*saturation;g=lum+(g-lum)*saturation;b=lum+(b-lum)*saturation;
+  r=pivot+(r-pivot)*contrast;g=pivot+(g-pivot)*contrast;b=pivot+(b-pivot)*contrast;
   if(grainAmount>0){
-   // Optional, genuinely subtle grain. Default is zero.
+   // Fine, low-amplitude luminance grain; never the coarse noise seen in the earlier build.
    noiseSeed=(Math.imul(noiseSeed,1664525)+1013904223)|0;
-   const n=((noiseSeed>>>0)/4294967295-0.5)*grainAmount*0.06;
+   const n=((noiseSeed>>>0)/4294967295-0.5)*Math.min(22,grainAmount)*0.34;
    r+=n;g+=n;b+=n;
   }
-  d[i]=Math.max(0,Math.min(255,r));
-  d[i+1]=Math.max(0,Math.min(255,g));
-  d[i+2]=Math.max(0,Math.min(255,b));
+  d[i]=Math.max(0,Math.min(255,r));d[i+1]=Math.max(0,Math.min(255,g));d[i+2]=Math.max(0,Math.min(255,b));
  }
  return imageData;
 }
@@ -883,7 +866,7 @@ function selectRecipe(key){
  $('recipeTitle').textContent=r.name;
  $('recipeDesc').textContent=r.desc;
  $('viewRecipe').textContent=r.name.toUpperCase();
- $('recipeCount').textContent=String(Object.keys(recipes).indexOf(key)+1).padStart(2,'0')+' / 04';
+ $('recipeCount').textContent=String(Object.keys(recipes).indexOf(key)+1).padStart(2,'0')+' / '+String(Object.keys(recipes).length).padStart(2,'0');
  document.querySelectorAll('.recipe').forEach(b=>b.classList.toggle('active',b.dataset.recipe===key));
  $('warmth').value=r.warm;
  $('saturation').value=r.sat;
@@ -932,7 +915,7 @@ $('resetCameraBtn').addEventListener('click',()=>{
  $('zoom').value=$('zoom').min||1;$('ev').value=0;applyTrackConstraint('zoom',Number($('zoom').value));applyTrackConstraint('exposureCompensation',0);
  message.textContent='Camera controls returned to their available defaults.';
 });
-$('openPhotoSettings').addEventListener('click',()=>{message.textContent='Photo output: JPEG from the iPhone camera stream (Safari does not expose sensor RAW/ProRAW). The app saves the finished film JPEG and flat, log-inspired original JPEG.';});
+$('openPhotoSettings').addEventListener('click',()=>{message.textContent='Photo output: JPEG from the iPhone camera stream (Safari does not expose sensor RAW/ProRAW). The app saves the finished film JPEG and very flat, LOG-inspired original JPEG. Film JPEG uses the selected one-touch stock profile.';});
 
 
 $('reset').addEventListener('click',()=>{
@@ -1170,16 +1153,13 @@ $('exposure').addEventListener('input',updateExposureReadouts);
 
 function renderLooksPanel(){
  openPanel('Looks / LUT Browser',`
-  <div class="eyebrow">FILM PROFILES</div>
+  <div class="eyebrow">FILM PROFILES · 08 LOOKS</div>
   <div class="panel-option-grid" style="margin:10px 0">
-   <button class="panel-option ${current==='gold'?'active':''}" data-look="gold">KODAK GOLD 200<small>Warm · soft · nostalgic</small></button>
-   <button class="panel-option ${current==='ultra'?'active':''}" data-look="ultra">KODAK ULTRAMAX 400<small>Vivid · sunny · punchy</small></button>
-   <button class="panel-option ${current==='fuji'?'active':''}" data-look="fuji">FUJIFILM 400<small>Fresh greens · cool shadows</small></button>
-   <button class="panel-option ${current==='chrome'?'active':''}" data-look="chrome">CLASSIC CHROME<small>Muted · editorial</small></button>
+   ${Object.entries(recipes).map(([key,r])=>`<button class="panel-option ${current===key?'active':''}" data-look="${key}">${r.name.toUpperCase()}<small>${r.desc}</small></button>`).join('')}
   </div>
   <div class="eyebrow" style="margin-top:16px">PROCESSING</div>
   <div class="panel-actions"><button id="processNatural" class="${v3State.processing==='natural'?'active':''}">NATURAL · MINIMAL</button><button id="processStandard" class="${v3State.processing==='standard'?'active':''}">STANDARD · FILM LOOK</button></div>
-  <p class="panel-note">Natural reduces the recipe's colour styling. Standard applies the selected film profile. Sensor RAW / ProRAW capture is not available through Safari.</p>
+  <p class="panel-note">Each stock is developed immediately after capture with its own tone curve, colour response and fine grain. Natural keeps the camera colour more neutral. Safari cannot access the iPhone sensor RAW / ProRAW pipeline.</p>
   <div class="eyebrow">IMPORTED LOOK</div>
   <div class="panel-actions"><button id="importLutBtn">＋ IMPORT .CUBE LUT</button><button id="clearLutBtn">REMOVE LUT</button></div>
   <p class="panel-note" id="lutStatus">${v3State.lutName==='None'?'No custom LUT imported.':'Active LUT: '+v3State.lutName}</p>
