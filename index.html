@@ -325,7 +325,7 @@ body.zen #settingsOpen{display:none}
 <div class="camera-stage">
 <header class="camera-topbar">
  <button class="round-control" id="looksOpen" type="button" aria-label="Open looks">◉</button>
- <div class="top-readout"><div class="brand">AOMSAMUT<span>.</span> FILM LAB</div><div class="subbrand" id="topFormat">JPEG · 12 MP* · 3:4</div></div>
+ <div class="top-readout"><div class="brand">AOMSAMUT<span>.</span> FILM LAB</div><div class="subbrand" id="topFormat">JPEG · AUTO RES · 3:4</div></div>
  <div class="top-actions"><span class="status" id="status">CAMERA OFF</span><button id="settingsOpen" type="button" aria-label="Open camera settings">☰</button></div>
 </header>
 
@@ -1235,16 +1235,35 @@ takePhoto=async function(){
  shutterBusy=true;$('shutter').style.opacity='.55';
  try{
   if(selfTimer){for(let n=selfTimer;n>0;n--){message.textContent='Get ready… '+n;await new Promise(r=>setTimeout(r,1000));}}
-  const width=video.videoWidth,height=video.videoHeight;
-  if(!width||!height){message.textContent='Camera is not ready yet.';return;}
+  // Prefer a native still-photo capture when the browser exposes ImageCapture.
+  // This can exceed the resolution of the live video stream. Safari/iOS may not
+  // support it, so the live stream remains a safe, automatic fallback.
+  let captureSource=video, captureBitmap=null, captureMethod='LIVE STREAM';
+  const track=stream.getVideoTracks()[0];
+  if(track && 'ImageCapture' in window && typeof window.ImageCapture==='function' && window.createImageBitmap){
+   try{
+    const stillCapture=new ImageCapture(track);
+    const stillBlob=await stillCapture.takePhoto();
+    captureBitmap=await createImageBitmap(stillBlob);
+    captureSource=captureBitmap;
+    captureMethod='NATIVE STILL';
+   }catch(stillError){console.warn('Native still capture unavailable; using full-resolution video frame.',stillError);}
+  }
+  const width=captureSource===video?video.videoWidth:captureSource.width;
+  const height=captureSource===video?video.videoHeight:captureSource.height;
+  if(!width||!height){captureBitmap?.close?.();message.textContent='Camera is not ready yet.';return;}
   const [rw,rh]=v3State.aspect.split('/').map(Number),ratio=rh/rw,sourceRatio=width/height;
   let sx=0,sy=0,sw=width,sh=height;
   if(sourceRatio>ratio){sw=height*ratio;sx=(width-sw)/2;}else{sh=width/ratio;sy=(height-sh)/2;}
   canvas.width=Math.round(sw);canvas.height=Math.round(sh);
   ctx.save();
   if(facing==='user'&&$('mirrorFront').checked){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
-  ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
+  ctx.drawImage(captureSource,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
   ctx.restore();
+  captureBitmap?.close?.();
+  const capturedMP=(canvas.width*canvas.height/1e6).toFixed(2);
+  $('resolutionSetting').textContent=`${canvas.width} × ${canvas.height} · ${capturedMP} MP (${captureMethod})`;
+  $('topFormat').textContent=`JPEG · ${capturedMP} MP · ${v3State.aspect}`;
   const originalBlob=await canvasBlob(canvas,1.0);
   if(!originalBlob){message.textContent='Could not create original photograph.';return;}
   const frame=ctx.getImageData(0,0,canvas.width,canvas.height);
