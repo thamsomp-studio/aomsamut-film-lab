@@ -565,14 +565,14 @@ let cameraCaps={}, torchOn=false, gridOn=true, selfTimer=0, jpegQuality=0.98, fo
 let focusModes=[];
 
 const recipes={
- gold:{name:'Kodak Gold 200',desc:'Golden highlights · Natural skin · Soft film contrast',filter:'sepia(.13) saturate(1.22) contrast(.94) brightness(1.06) hue-rotate(-7deg)',warm:5,sat:112,con:96},
- ultra:{name:'Kodak Ultramax 400',desc:'Vivid colours · Sunny warmth · Punchy contrast',filter:'saturate(1.38) contrast(1.08) brightness(1.02) sepia(.06)',warm:3,sat:125,con:108},
- fuji:{name:'Fujifilm 400',desc:'Fresh greens · Cool shadows · Natural colour',filter:'saturate(1.08) contrast(.96) brightness(1.04) hue-rotate(5deg)',warm:-4,sat:105,con:97},
- chrome:{name:'Classic Chrome',desc:'Muted colour · Gentle contrast · Editorial mood',filter:'saturate(.78) contrast(1.13) brightness(1.02) sepia(.08)',warm:-2,sat:82,con:113}
+ gold:{name:'Kodak Gold 200',desc:'Neutral whites · Gentle warmth · Natural film colour',filter:'saturate(1.02) contrast(.98) brightness(1.00)',warm:1,sat:101,con:98},
+ ultra:{name:'Kodak Ultramax 400',desc:'Lively colour · Natural warmth · Moderate contrast',filter:'saturate(1.08) contrast(1.02) brightness(1.00)',warm:1,sat:105,con:102},
+ fuji:{name:'Fujifilm 400',desc:'Fresh greens · Neutral highlights · Soft contrast',filter:'saturate(1.02) contrast(.98) brightness(1.00)',warm:0,sat:102,con:98},
+ chrome:{name:'Classic Chrome',desc:'Muted colour · Restrained contrast · Clean whites',filter:'saturate(.91) contrast(1.02) brightness(1.00)',warm:0,sat:91,con:102}
 };
 
 const sliders=['exposure','warmth','saturation','grain','contrast','temperature','tint'];
-const defaults={exposure:0,warmth:0,saturation:100,grain:7,contrast:100,temperature:5500,tint:0};
+const defaults={exposure:0,warmth:0,saturation:100,grain:4,contrast:100,temperature:5500,tint:0};
 
 const $=id=>document.getElementById(id);
 
@@ -704,28 +704,28 @@ function updateLabels(){
 // One pixel-processing pipeline powers both the live preview and saved JPEG.
 // The preview is rendered at a smaller resolution for smooth performance on iPhone.
 function filmProfile() {
- // Film-inspired colour science: restrained colour separation, a soft toe,
- // and a shoulder that protects bright areas without making the image muddy.
+ // Raw-style starting point: preserve neutral whites and natural colour.
+ // Film character is added gently after capture, not by heavily tinting the base.
  const profiles = {
   gold: {
-   warmth: 1.5, saturation: 1.035, contrast: 0.985,
-   green: 0.15, blue: -0.25, fade: 0.018,
-   highlightWarmth: 1.35, shadowCool: 0.65, shoulder: 0.17, toe: 0.018
+   warmth: 0.35, saturation: 1.005, contrast: 0.975,
+   green: 0.0, blue: 0.0, fade: 0.008,
+   highlightWarmth: 0.35, shadowCool: 0.18, shoulder: 0.09, toe: 0.006
   },
   ultra: {
-   warmth: 1.0, saturation: 1.075, contrast: 1.035,
-   green: 0.05, blue: -0.1, fade: 0.008,
-   highlightWarmth: 0.8, shadowCool: 0.35, shoulder: 0.11, toe: 0.008
+   warmth: 0.45, saturation: 1.045, contrast: 1.005,
+   green: 0.0, blue: -0.05, fade: 0.004,
+   highlightWarmth: 0.3, shadowCool: 0.15, shoulder: 0.075, toe: 0.004
   },
   fuji: {
-   warmth: -1.0, saturation: 1.025, contrast: 0.985,
-   green: 0.35, blue: 0.45, fade: 0.022,
-   highlightWarmth: 0.2, shadowCool: 1.0, shoulder: 0.16, toe: 0.02
+   warmth: -0.2, saturation: 1.015, contrast: 0.975,
+   green: 0.08, blue: 0.12, fade: 0.01,
+   highlightWarmth: 0.08, shadowCool: 0.25, shoulder: 0.09, toe: 0.008
   },
   chrome: {
-   warmth: -1.0, saturation: 0.88, contrast: 1.055,
-   green: 0.0, blue: 0.35, fade: 0.035,
-   highlightWarmth: 0.15, shadowCool: 0.7, shoulder: 0.13, toe: 0.035
+   warmth: -0.15, saturation: 0.91, contrast: 1.015,
+   green: 0.0, blue: 0.12, fade: 0.012,
+   highlightWarmth: 0.06, shadowCool: 0.2, shoulder: 0.08, toe: 0.01
   }
  };
  return profiles[current] || profiles.gold;
