@@ -489,7 +489,7 @@ body.zen #settingsOpen{display:none}
  <div class="control"><label for="exposure">Exposure</label><output id="exposureValue">0.0</output><input id="exposure" type="range" min="-1.5" max="1.5" step=".1" value="0"></div>
  <div class="control"><label for="warmth">Warmth</label><output id="warmthValue">0</output><input id="warmth" type="range" min="-30" max="30" step="1" value="0"></div>
  <div class="control"><label for="saturation">Saturation</label><output id="saturationValue">100%</output><input id="saturation" type="range" min="50" max="160" step="1" value="100"></div>
- <div class="control"><label for="grain">Film grain</label><output id="grainValue">15%</output><input id="grain" type="range" min="0" max="60" step="1" value="7"></div>
+ <div class="control"><label for="grain">Film grain</label><output id="grainValue">15%</output><input id="grain" type="range" min="0" max="60" step="1" value="0"></div>
  <div class="control"><label for="contrast">Contrast</label><output id="contrastValue">100%</output><input id="contrast" type="range" min="75" max="130" step="1" value="100"></div>
  <div class="control"><label for="temperature">White balance · Temperature</label><output id="temperatureValueDrawer">5500 K</output><input id="temperatureDrawer" type="range" min="2500" max="9000" step="100" value="5500"></div>
  <div class="control"><label for="tint">White balance · Tint</label><output id="tintValueDrawer">0</output><input id="tintDrawer" type="range" min="-50" max="50" step="1" value="0"></div>
@@ -572,7 +572,7 @@ const recipes={
 };
 
 const sliders=['exposure','warmth','saturation','grain','contrast','temperature','tint'];
-const defaults={exposure:0,warmth:0,saturation:100,grain:4,contrast:100,temperature:5500,tint:0};
+const defaults={exposure:0,warmth:0,saturation:100,grain:0,contrast:100,temperature:5500,tint:0};
 
 const $=id=>document.getElementById(id);
 
@@ -757,98 +757,47 @@ function processFilmPixels(imageData, settings, seed=1) {
  const warmth=s.warmth||0;
  const tempShift=((s.temperature||5500)-5500)/1000;
  const tint=s.tint||0;
- const grainAmount=Math.max(0,s.grain||0)*0.105;
  const fade=s.fade||0;
- const toe=s.toe||0.012;
- const shoulder=s.shoulder||0.12;
- const highlightWarmth=s.highlightWarmth||0;
- const shadowCool=s.shadowCool||0;
- const greenBias=s.green||0;
+ const grainAmount=Math.max(0,s.grain||0);
+
+ // Build three 256-entry tone tables once per image, rather than running
+ // expensive gamma/power functions for every channel of every pixel.
+ const warm=Math.max(-0.035,Math.min(0.035,(warmth*0.0012)+(tempShift*0.006)));
+ const green=Math.max(-0.025,Math.min(0.025,(tint*-0.001)+(s.green||0)*0.001));
  const blueBias=s.blue||0;
-
- // Canvas supplies gamma-encoded sRGB, not sensor RAW. Decode it to linear
- // light first so exposure, white balance and colour mixing behave more like
- // a photographic negative/RAW development pipeline.
- const toLinear=v=>{
-  v=Math.max(0,Math.min(1,v));
-  return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4);
- };
- const toSrgb=v=>{
-  v=Math.max(0,v);
-  return v<=0.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-0.055;
- };
- const smooth=t=>t*t*(3-2*t);
- const clamp=v=>Math.max(0,Math.min(1,v));
-
- // A restrained print-like curve: gentle toe and shoulder with no aggressive
- // HDR look. The curve is normalised to preserve a clean white point.
- const filmCurve=(x)=>{
-  x=Math.max(0,x);
-  const black=toe*0.22;
-  const y=(x*(1.0+shoulder*0.55)+black)/(1+x*shoulder*0.55);
-  return y;
- };
-
- for(let i=0,pixel=0;i<d.length;i+=4,pixel++){
-  let r=toLinear(d[i]/255);
-  let g=toLinear(d[i+1]/255);
-  let b=toLinear(d[i+2]/255);
-
-  // Exposure in linear light, before the film response.
-  r*=exposure; g*=exposure; b*=exposure;
-
-  // Gentle white-balance/tint adjustment in linear light.
-  const warm=Math.max(-0.08,Math.min(0.08,(warmth*0.0022)+(tempShift*0.012)));
-  const green=Math.max(-0.06,Math.min(0.06,(tint*-0.0018)+(greenBias*0.0018)));
-  r*=1+warm;
-  g*=1+green;
-  b*=1-warm*0.82+tempShift*-0.002;
-
-  // Luminance-dependent film dye crossover: golden highlights and subtly
-  // cooler shadows, kept intentionally restrained for believable skin.
-  const lum=0.2126*r+0.7152*g+0.0722*b;
-  const hi=smooth(clamp((lum-0.30)/0.58));
-  const sh=1-smooth(clamp((lum-0.018)/0.28));
-  r*=1+hi*highlightWarmth*0.0045-sh*shadowCool*0.0016;
-  g*=1+hi*greenBias*0.0025;
-  b*=1-hi*highlightWarmth*0.0027+sh*(shadowCool*0.0032+blueBias*0.0028);
-
-  // Film-like saturation and contrast in linear light.
-  const y=0.2126*r+0.7152*g+0.0722*b;
-  r=y+(r-y)*saturation;
-  g=y+(g-y)*saturation;
-  b=y+(b-y)*saturation;
-
-  // Contrast pivots around a photographic middle grey rather than clipping
-  // highlights and shadows with a simple RGB multiplier.
-  const pivot=0.18;
-  r=pivot+(r-pivot)*contrast;
-  g=pivot+(g-pivot)*contrast;
-  b=pivot+(b-pivot)*contrast;
-
-  r=filmCurve(r); g=filmCurve(g); b=filmCurve(b);
-
-  // Very light print fade, mostly affecting the toe.
-  r=r+fade*0.0025*(1-r);
-  g=g+fade*0.0025*(1-g);
-  b=b+fade*0.0025*(1-b);
-
-  // Fine luminance grain, added after tonal rendering. Chroma remains cleaner.
-  if(grainAmount>0){
-   let x=(pixel+seed*374761393)|0;
-   x=Math.imul(x^(x>>>13),1274126177);
-   const n1=((x^(x>>>16))>>>0)/4294967295;
-   x=Math.imul((x+0x6D2B79F5)|0,2246822519);
-   const n2=((x^(x>>>13))>>>0)/4294967295;
-   x=Math.imul((x+0x165667B1)|0,3266489917);
-   const n3=((x^(x>>>16))>>>0)/4294967295;
-   const noise=((n1+n2+n3)-1.5)*grainAmount*0.055;
-   r+=noise; g+=noise*0.94; b+=noise*0.86;
+ const tableR=new Uint8Array(256), tableG=new Uint8Array(256), tableB=new Uint8Array(256);
+ const makeTable=(table,mult,offset)=>{
+  for(let i=0;i<256;i++){
+   let v=(i/255)*exposure*mult+offset;
+   // Very gentle shoulder: retain highlight detail without flattening the image.
+   v=Math.max(0,Math.min(1,v));
+   v=v*(1+(s.shoulder||0.04)*0.18)/(1+v*(s.shoulder||0.04)*0.18);
+   v=v+fade*0.0005*(1-v);
+   table[i]=Math.max(0,Math.min(255,Math.round(v*255)));
   }
+ };
+ makeTable(tableR,1+warm,0);
+ makeTable(tableG,1+green,0);
+ makeTable(tableB,1-warm*0.8+blueBias*0.0005,0);
 
-  d[i]=clamp(toSrgb(r))*255;
-  d[i+1]=clamp(toSrgb(g))*255;
-  d[i+2]=clamp(toSrgb(b))*255;
+ const sat=Math.max(0.7,Math.min(1.25,saturation));
+ const con=Math.max(0.88,Math.min(1.12,contrast));
+ const pivot=118;
+ let noiseSeed=(seed|0)||1;
+ for(let i=0;i<d.length;i+=4){
+  let r=tableR[d[i]],g=tableG[d[i+1]],b=tableB[d[i+2]];
+  const y=0.2126*r+0.7152*g+0.0722*b;
+  r=y+(r-y)*sat; g=y+(g-y)*sat; b=y+(b-y)*sat;
+  r=pivot+(r-pivot)*con; g=pivot+(g-pivot)*con; b=pivot+(b-pivot)*con;
+  if(grainAmount>0){
+   // Optional, genuinely subtle grain. Default is zero.
+   noiseSeed=(Math.imul(noiseSeed,1664525)+1013904223)|0;
+   const n=((noiseSeed>>>0)/4294967295-0.5)*grainAmount*0.06;
+   r+=n;g+=n;b+=n;
+  }
+  d[i]=Math.max(0,Math.min(255,r));
+  d[i+1]=Math.max(0,Math.min(255,g));
+  d[i+2]=Math.max(0,Math.min(255,b));
  }
  return imageData;
 }
@@ -873,7 +822,7 @@ function renderLivePreview(){
  if(!stream || video.readyState<2 || !video.videoWidth) return;
  // Render a sharper 3:4 preview. The previous 360x480 buffer was too small
  // for a modern iPhone display and looked visibly soft when enlarged.
- const maxPreviewHeight=1440;
+ const maxPreviewHeight=720;
  const sourceWidth=video.videoWidth, sourceHeight=video.videoHeight;
  const selected=$('aspectRatio')?.value||'3/4';
  const [aspectW,aspectH]=selected.split('/').map(Number);
@@ -902,7 +851,7 @@ function renderLivePreview(){
 function startPreviewLoop(){
  if(previewTimer) clearInterval(previewTimer);
  renderLivePreview();
- previewTimer=setInterval(renderLivePreview,220);
+ previewTimer=setInterval(renderLivePreview,600);
 }
 function selectRecipe(key){
  current=key;
@@ -945,6 +894,8 @@ function restoreCameraPrefs(){
   const saved=JSON.parse(localStorage.getItem('aomsamutFilmLabPrefs')||'null');if(!saved)return;
   if(saved.recipe&&recipes[saved.recipe])selectRecipe(saved.recipe);
   if(saved.values)Object.entries(saved.values).forEach(([id,val])=>{if($(id))$(id).value=val;});
+  // V16: never restore legacy artificial grain. User can add it manually if desired.
+  $('grain').value=0;
   if(typeof saved.gridOn==='boolean'){gridOn=saved.gridOn;$('grid').style.display=gridOn?'block':'none';$('gridBtn').textContent='GRID '+(gridOn?'ON':'OFF');$('gridBtn').classList.toggle('active',gridOn);}
   if(saved.jpegQuality)jpegQuality=saved.jpegQuality;
   $('temperature').value=$('temperatureDrawer').value=$('temperature').value;
@@ -957,7 +908,7 @@ $('resetCameraBtn').addEventListener('click',()=>{
  $('zoom').value=$('zoom').min||1;$('ev').value=0;applyTrackConstraint('zoom',Number($('zoom').value));applyTrackConstraint('exposureCompensation',0);
  message.textContent='Camera controls returned to their available defaults.';
 });
-$('openPhotoSettings').addEventListener('click',()=>{message.textContent='Photo output: JPEG. Resolution is determined by the active camera stream; the app saves the processed film image and original capture.';});
+$('openPhotoSettings').addEventListener('click',()=>{message.textContent='Photo output: JPEG from the iPhone camera stream (Safari does not expose sensor RAW/ProRAW). The app saves the finished film JPEG and untouched camera-frame original.';});
 
 
 $('reset').addEventListener('click',()=>{
@@ -1401,7 +1352,7 @@ document.querySelectorAll('.settings-nav button').forEach(b=>b.addEventListener(
    Preserve the real stream dimensions; never upscale or claim native 48 MP. */
 async function processCanvasInTiles(targetCanvas, settings, seed=7){
  const targetCtx=targetCanvas.getContext('2d',{willReadFrequently:true});
- const tileHeight=128;
+ const tileHeight=384;
  for(let y=0;y<targetCanvas.height;y+=tileHeight){
   const h=Math.min(tileHeight,targetCanvas.height-y);
   const frame=targetCtx.getImageData(0,y,targetCanvas.width,h);
@@ -1480,7 +1431,7 @@ function renderLivePreview(){
  const vw=video.videoWidth,vh=video.videoHeight,source=vw/vh;
  let sx=0,sy=0,sw=vw,sh=vh;
  if(source>ratio){sw=vh*ratio;sx=(vw-sw)/2;}else{sh=vw/ratio;sy=(vh-sh)/2;}
- const maxPreviewHeight=1440;
+ const maxPreviewHeight=720;
  const scale=Math.min(1,maxPreviewHeight/sh),w=Math.max(1,Math.round(sw*scale)),h=Math.max(1,Math.round(sh*scale));
  if(previewCanvas.width!==w||previewCanvas.height!==h){previewCanvas.width=w;previewCanvas.height=h;}
  previewCtx.drawImage(video,sx,sy,sw,sh,0,0,w,h);
