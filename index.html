@@ -20,7 +20,7 @@ header{display:flex;justify-content:space-between;align-items:center;padding:cal
 .brand span{color:var(--orange)}
 .subbrand{font-size:9px;letter-spacing:2px;color:#999;margin-top:5px}
 .status{font-size:9px;letter-spacing:1.5px;color:#aaa}
-.viewfinder{position:relative;width:min(100%, calc(49svh * .75));height:49svh;max-height:490px;min-height:260px;aspect-ratio:4/3;background:#292b28;border-radius:5px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto}
+.viewfinder{position:relative;width:min(100%, calc(49svh * .75));height:49svh;max-height:490px;min-height:260px;aspect-ratio:3/4;background:#292b28;border-radius:5px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto}
 #video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 #previewCanvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
 #placeholder{text-align:center;padding:25px;color:#aaa}
@@ -117,7 +117,7 @@ header{min-height:58px;padding:calc(8px + env(safe-area-inset-top)) 16px 10px;ga
 .subbrand{font-size:8px;letter-spacing:2px;margin-top:3px}
 .status{font-size:8px;letter-spacing:1.2px;text-align:center;white-space:nowrap}
 #settingsOpen{border:0;border-radius:22px;background:#242426;color:#eee;padding:10px 13px;font-size:9px;letter-spacing:1px}
-.viewfinder{width:100%;height:min(66svh,760px);min-height:340px;max-height:none;aspect-ratio:4/3;margin:0 auto;border-radius:13px;background:#252525;overflow:hidden}
+.viewfinder{width:100%;height:min(66svh,760px);min-height:340px;max-height:none;aspect-ratio:3/4;margin:0 auto;border-radius:13px;background:#252525;overflow:hidden}
 #video{display:none}
 #previewCanvas{display:none;object-fit:cover}
 #placeholder{max-width:270px}
@@ -191,7 +191,7 @@ header{grid-template-columns:1fr auto auto;min-height:54px;padding-top:calc(7px 
 .sectionhead{margin:10px 16px 8px;padding-top:10px}
 .recipeName{font-size:18px}.description{font-size:9px}
 .recipes{padding:0 16px 8px;gap:6px}.recipe{flex-basis:88px;min-height:44px;border-radius:8px}
-.gallery{margin:8px 16px 0;padding-top:10px}.gallery-heading{display:flex;align-items:center;justify-content:space-between}.gallery-heading button{background:none;border:0;color:var(--orange);font-size:8px;letter-spacing:1px;padding:5px 0}.gallery.expanded #photos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}.gallery.expanded .photoitem{width:auto;min-width:0}.gallery.expanded .photoitem img{width:100%;height:auto;aspect-ratio:4/3}
+.gallery{margin:8px 16px 0;padding-top:10px}.gallery-heading{display:flex;align-items:center;justify-content:space-between}.gallery-heading button{background:none;border:0;color:var(--orange);font-size:8px;letter-spacing:1px;padding:5px 0}.gallery.expanded #photos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}.gallery.expanded .photoitem{width:auto;min-width:0}.gallery.expanded .photoitem img{width:100%;height:auto;aspect-ratio:3/4}
 #photos{padding:8px 0 3px}.photoitem{flex-basis:66px;width:66px}.photoitem img{width:66px;height:82px;border-radius:6px}
 .settings-drawer{background:#19191b;border-color:#38383a;max-height:86svh;padding-left:18px;padding-right:18px}
 .settings-drawer .panel,.settings-drawer .camera-panel{border-color:#38383a}
@@ -217,7 +217,7 @@ body{background:#0b0b0c;color:#f2f2f0}
 .top-actions{display:flex;align-items:center;gap:8px}
 .top-actions .status{font-size:7px;max-width:62px;text-align:right;line-height:1.3}
 #settingsOpen{border:0;background:none;color:#eee;font-size:24px;padding:4px 2px}
-.viewfinder{width:100%;height:auto;max-height:min(62svh,720px);min-height:0;aspect-ratio:4/3;border-radius:13px;background:#171719}
+.viewfinder{width:100%;height:auto;max-height:min(62svh,720px);min-height:0;aspect-ratio:3/4;border-radius:13px;background:#171719}
 #video{display:none}
 #previewCanvas{display:none}
 .viewlabel{top:13px;display:flex;justify-content:space-between;gap:8px}
@@ -319,26 +319,69 @@ body.zen #settingsOpen{display:none}
 @media(max-width:380px){.app{padding-left:9px;padding-right:9px}.viewfinder{max-height:58svh}.camera-topbar{padding-left:8px;padding-right:8px}.top-readout .brand{font-size:10px}.shutter{width:66px;height:66px}.action-plate{gap:4px;padding:8px 6px}.action-plate button{min-height:44px}}
 
 
-/* V6 · Aspect-ratio-locked viewfinder: preview, grid and capture share one frame. */
+/* V4 MOBILE CAMERA LAYOUT — spacious controls, true selected aspect ratio */
+.app{width:100%;max-width:720px;margin:0 auto;padding-left:14px;padding-right:14px}
+.camera-stage{width:100%}
+.camera-topbar{grid-template-columns:48px minmax(0,1fr) auto;gap:10px;padding-left:14px;padding-right:14px}
+.top-readout{min-width:0}
+.top-readout .brand{font-size:clamp(10px,2.4vw,13px);letter-spacing:clamp(1px,.35vw,2px);white-space:nowrap}
+.top-readout .subbrand{font-size:8px;letter-spacing:1.4px}
+.top-actions{gap:8px;min-width:0}
+.top-actions .status{max-width:72px;font-size:7px;letter-spacing:1px;white-space:normal}
+#settingsOpen{font-size:23px;padding:4px 2px}
 .viewfinder{
-  width:100% !important;
-  height:auto !important;
-  min-height:0 !important;
-  max-height:none !important;
-  aspect-ratio:var(--finder-ratio, 4 / 3) !important;
-  box-sizing:border-box;
+ width:100%;
+ height:auto;
+ min-height:0;
+ max-height:none;
+ aspect-ratio:4/3;
+ margin:0 auto;
+ border-radius:14px;
 }
-#previewCanvas{
-  position:absolute;
-  inset:0;
-  display:none;
-  width:100%;
-  height:100%;
-  object-fit:fill;
+#previewCanvas{width:100%;height:100%;object-fit:fill;display:none}
+.camera-readouts{gap:7px;margin:12px 2px 8px}
+.readout-button{min-height:66px;padding:10px 4px;border-radius:10px}
+.readout-value{font-size:16px}
+.readout-button small{font-size:8px;margin-top:4px}
+.wb-strip{margin:10px 2px 0;padding-top:12px}
+.wb-heading{font-size:9px;margin-bottom:9px}
+.wb-pair{gap:10px;margin-top:8px}
+.wb-control{min-height:76px;padding:10px 12px;gap:5px;border-radius:11px}
+.wb-control span{font-size:9px}
+.wb-control output{font-size:13px}
+.wb-control input{height:20px}
+.controls{grid-template-columns:minmax(0,1fr) 92px minmax(0,1fr);gap:12px;margin:14px 2px 12px;min-height:96px;padding:0 8px}
+.tool{font-size:9px;letter-spacing:1.1px;line-height:1.6;padding:12px 4px}
+.shutter{width:84px;height:84px}
+.action-plate{gap:8px;padding:12px 10px 11px;border-radius:20px 20px 12px 12px}
+.action-plate button{min-height:60px;border-radius:12px;gap:5px}
+.plate-icon{font-size:19px}
+.action-plate small{font-size:8px;letter-spacing:1px}
+.exposure-wheel{min-height:60px}
+.exposure-wheel b{font-size:10px}
+.exposure-wheel small{font-size:9px}
+#message{padding:10px 8px 0;line-height:1.5}
+@media(max-width:380px){
+ .app{padding-left:10px;padding-right:10px}
+ .camera-topbar{grid-template-columns:42px minmax(0,1fr) auto;gap:7px;padding-left:9px;padding-right:9px}
+ .round-control{width:38px;height:38px}
+ .top-readout .brand{font-size:10px;letter-spacing:1px}
+ .top-readout .subbrand{font-size:7px;letter-spacing:1px}
+ .top-actions .status{display:none}
+ .viewfinder{aspect-ratio:4/3}
+ .readout-button{min-height:60px}
+ .readout-value{font-size:14px}
+ .wb-control{padding:8px}
+ .controls{grid-template-columns:minmax(0,1fr) 82px minmax(0,1fr);gap:7px;min-height:88px}
+ .shutter{width:74px;height:74px}
+ .action-plate{gap:6px;padding:9px 7px}
+ .action-plate button{min-height:54px}
 }
-/* The source is cropped to the selected ratio before it reaches this canvas,
-   so filling the frame never stretches or distorts the photograph. */
-body.zen .viewfinder{height:calc(100svh - 112px) !important;max-height:none !important;min-height:0 !important;aspect-ratio:auto !important}
+@media(min-width:621px){
+ .app{max-width:720px}
+ .viewfinder{max-width:100%}
+}
+
 </style>
 </head>
 <body>
@@ -346,7 +389,7 @@ body.zen .viewfinder{height:calc(100svh - 112px) !important;max-height:none !imp
 <div class="camera-stage">
 <header class="camera-topbar">
  <button class="round-control" id="looksOpen" type="button" aria-label="Open looks">◉</button>
- <div class="top-readout"><div class="brand">AOMSAMUT<span>.</span> FILM LAB</div><div class="subbrand" id="topFormat">JPEG · AUTO RES · 4:3</div></div>
+ <div class="top-readout"><div class="brand">AOMSAMUT<span>.</span> FILM LAB</div><div class="subbrand" id="topFormat">JPEG · 12 MP* · 4:3</div></div>
  <div class="top-actions"><span class="status" id="status">CAMERA OFF</span><button id="settingsOpen" type="button" aria-label="Open camera settings">☰</button></div>
 </header>
 
@@ -354,7 +397,7 @@ body.zen .viewfinder{height:calc(100svh - 112px) !important;max-height:none !imp
  <video id="video" autoplay playsinline muted></video><canvas id="previewCanvas"></canvas>
  <div id="placeholder"><div class="symbol">◎</div><div style="letter-spacing:3px;font-size:11px">YOUR FILM JOURNEY</div><p>Start the camera to see your world<br>through a film-inspired lens.</p></div>
  <div class="grid" id="grid"></div><div id="grainPreview"></div>
- <div class="viewlabel"><span id="viewRecipe">KODAK GOLD 200</span><span id="viewFormat">JPEG · 3:4</span></div>
+ <div class="viewlabel"><span id="viewRecipe">KODAK GOLD 200</span><span id="viewFormat">JPEG · 4:3</span></div>
  <div class="viewbottom"><span id="focusReadout">AF · AUTO</span><span id="resolutionReadout">WAITING FOR CAMERA</span></div>
  <div class="finder-tools"><button id="torchBtn" type="button" aria-label="Toggle flash">⚡</button><button id="gridBtn" type="button" class="active" aria-label="Toggle grid">▦</button></div>
  <div class="reticle" id="reticle" aria-hidden="true"></div>
@@ -422,7 +465,7 @@ body.zen .viewfinder{height:calc(100svh - 112px) !important;max-height:none !imp
  <div class="control"><label for="exposure">Exposure</label><output id="exposureValue">0.0</output><input id="exposure" type="range" min="-1.5" max="1.5" step=".1" value="0"></div>
  <div class="control"><label for="warmth">Warmth</label><output id="warmthValue">0</output><input id="warmth" type="range" min="-30" max="30" step="1" value="0"></div>
  <div class="control"><label for="saturation">Saturation</label><output id="saturationValue">100%</output><input id="saturation" type="range" min="50" max="160" step="1" value="100"></div>
- <div class="control"><label for="grain">Film grain</label><output id="grainValue">5%</output><input id="grain" type="range" min="0" max="30" step="1" value="5"></div>
+ <div class="control"><label for="grain">Film grain</label><output id="grainValue">15%</output><input id="grain" type="range" min="0" max="60" step="1" value="15"></div>
  <div class="control"><label for="contrast">Contrast</label><output id="contrastValue">100%</output><input id="contrast" type="range" min="75" max="130" step="1" value="100"></div>
  <div class="control"><label for="temperature">White balance · Temperature</label><output id="temperatureValueDrawer">5500 K</output><input id="temperatureDrawer" type="range" min="2500" max="9000" step="100" value="5500"></div>
  <div class="control"><label for="tint">White balance · Tint</label><output id="tintValueDrawer">0</output><input id="tintDrawer" type="range" min="-50" max="50" step="1" value="0"></div>
@@ -431,10 +474,10 @@ body.zen .viewfinder{height:calc(100svh - 112px) !important;max-height:none !imp
 
 <div class="panel">
  <div class="paneltop"><div class="eyebrow">PHOTO FORMAT</div><span class="eyebrow" id="formatSupport">JPEG · BROWSER OUTPUT</span></div>
- <div class="setting-row"><label for="aspectRatio">Aspect ratio</label><select id="aspectRatio"><option value="4/3" selected>4:3 · CLASSIC</option><option value="3/4">3:4 · PORTRAIT</option><option value="16/9">16:9 · CINEMA</option><option value="1/1">1:1 · SQUARE</option><option value="3/2">3:2 · PHOTO</option></select></div>
+ <div class="setting-row"><label for="aspectRatio">Aspect ratio</label><select id="aspectRatio"><option value="4/3">4:3 · CLASSIC</option><option value="3/4">3:4 · PORTRAIT</option><option value="16/9">16:9 · CINEMA</option><option value="1/1">1:1 · SQUARE</option><option value="3/2">3:2 · PHOTO</option></select></div>
  <div class="setting-row"><label for="outputQuality">JPEG quality</label><select id="outputQuality"><option value="0.98">MAXIMUM</option><option value="0.94">HIGH</option><option value="0.88">BALANCED</option></select></div>
  <div class="setting-row"><label>Camera resolution</label><output id="resolutionSetting">Available after camera starts</output></div>
- <p class="capability-note">The app requests the highest practical camera stream resolution and saves JPEG images at the actual resolution delivered by the browser. HEIF, TIFF, ProRAW and native sensor RAW are not exposed by this web camera.</p>
+ <p class="capability-note">The browser saves JPEG images at the active camera stream resolution. HEIF, TIFF, ProRAW and native sensor RAW are not exposed by this web camera.</p>
 </div>
 <div class="panel">
  <div class="paneltop"><div class="eyebrow">CAMERA BEHAVIOUR</div></div>
@@ -492,7 +535,7 @@ const previewCanvas=document.getElementById('previewCanvas');
 const previewCtx=previewCanvas.getContext('2d',{willReadFrequently:true});
 let previewTimer=null;
 const message=document.getElementById('message');
-let stream=null,facing='environment',current='gold',photoNumber=0,activeAspectRatio=4/3;
+let stream=null,facing='environment',current='gold',photoNumber=0;
 let db=null, selectedPhoto=null, galleryUrls=[];
 let cameraCaps={}, torchOn=false, gridOn=true, selfTimer=0, jpegQuality=0.98, focusModeIndex=0, shutterBusy=false;
 let focusModes=[];
@@ -505,7 +548,7 @@ const recipes={
 };
 
 const sliders=['exposure','warmth','saturation','grain','contrast','temperature','tint'];
-const defaults={exposure:0,warmth:0,saturation:100,grain:5,contrast:100,temperature:5500,tint:0};
+const defaults={exposure:0,warmth:0,saturation:100,grain:15,contrast:100,temperature:5500,tint:0};
 
 const $=id=>document.getElementById(id);
 
@@ -638,10 +681,10 @@ function updateLabels(){
 // The preview is rendered at a smaller resolution for smooth performance on iPhone.
 function filmProfile() {
  const profiles = {
-  gold:   { warmth: 3, saturation: 1.045, contrast: 0.99, green: 0.1, blue: -0.35, fade: 0.018 },
-  ultra:  { warmth: 2, saturation: 1.12, contrast: 1.035, green: 0.0, blue: -0.2, fade: 0.01 },
-  fuji:   { warmth: -2, saturation: 1.025, contrast: 0.99, green: 0.35, blue: 0.45, fade: 0.025 },
-  chrome: { warmth: -1, saturation: 0.88, contrast: 1.045, green: 0.0, blue: 0.25, fade: 0.035 }
+  gold:   { warmth: 5, saturation: 1.08, contrast: 0.97, green: 0.2, blue: -1.0, fade: 0.035 },
+  ultra:  { warmth: 3, saturation: 1.18, contrast: 1.07, green: 0.0, blue: -0.5, fade: 0.015 },
+  fuji:   { warmth: -4, saturation: 1.04, contrast: 0.98, green: 0.8, blue: 1.0, fade: 0.045 },
+  chrome: { warmth: -2, saturation: 0.82, contrast: 1.10, green: 0.0, blue: 0.5, fade: 0.07 }
  };
  return profiles[current] || profiles.gold;
 }
@@ -693,7 +736,7 @@ function processFilmPixels(imageData, settings, seed=1) {
   if(s.grain>0){
    let x=(pixel+seed*374761393)|0;
    x=Math.imul(x^(x>>>13),1274126177);
-   n=(((x^(x>>>16))>>>0)/4294967295-0.5)*s.grain*0.24;
+   n=(((x^(x>>>16))>>>0)/4294967295-0.5)*s.grain*0.72;
   }
   d[i]=Math.max(0,Math.min(255,r+n));
   d[i+1]=Math.max(0,Math.min(255,g+n));
@@ -720,12 +763,14 @@ function updatePreview(){
 }
 function renderLivePreview(){
  if(!stream || video.readyState<2 || !video.videoWidth) return;
- // Render a high-resolution preview cropped to the selected aspect ratio.
+ // Render a sharper 3:4 preview. The previous 360x480 buffer was too small
  // for a modern iPhone display and looked visibly soft when enlarged.
- const maxPreviewHeight=1200;
+ const maxPreviewHeight=1440;
  const sourceWidth=video.videoWidth, sourceHeight=video.videoHeight;
+ const selected=$('aspectRatio')?.value||'4/3';
+ const [aspectW,aspectH]=selected.split('/').map(Number);
+ const targetRatio=aspectW/aspectH;
  const sourceRatio=sourceWidth/sourceHeight;
- const targetRatio=activeAspectRatio;
  let cropWidth=sourceWidth, cropHeight=sourceHeight;
  if(sourceRatio>targetRatio) cropWidth=sourceHeight*targetRatio;
  else cropHeight=sourceWidth/targetRatio;
@@ -735,7 +780,7 @@ function renderLivePreview(){
  if(previewCanvas.width!==w || previewCanvas.height!==h){
   previewCanvas.width=w; previewCanvas.height=h;
  }
- const vw=video.videoWidth, vh=video.videoHeight, target=activeAspectRatio, source=vw/vh;
+ const vw=video.videoWidth, vh=video.videoHeight, target=targetRatio, source=vw/vh;
  let sx=0,sy=0,sw=vw,sh=vh;
  if(source>target){sw=vh*target;sx=(vw-sw)/2;}
  else{sh=vw/target;sy=(vh-sh)/2;}
@@ -851,29 +896,10 @@ async function startCamera(){
  }
  try{
   if(stream)stream.getTracks().forEach(t=>t.stop());
-  const cameraVideo={
-   facingMode:{ideal:facing},
-   width:{ideal:3840},height:{ideal:2880},
-   aspectRatio:{ideal:4/3},
-   frameRate:{ideal:30,max:30}
-  };
-  try{
-   stream=await navigator.mediaDevices.getUserMedia({audio:false,video:cameraVideo});
-  }catch(highResolutionError){
-   console.warn('High-resolution camera request was rejected; retrying with a compatible 4:3 request.',highResolutionError);
-   stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{
-    facingMode:{ideal:facing},width:{ideal:1920},height:{ideal:1440},aspectRatio:{ideal:4/3}
-   }});
-  }
-  const activeTrack=stream.getVideoTracks()[0];
-  if(activeTrack){
-   try{activeTrack.contentHint='detail';}catch(e){}
-   const actual=activeTrack.getSettings?.()||{};
-   console.info('AOMSAMUT camera stream:',actual.width+' × '+actual.height,'@',actual.frameRate||'unknown','fps');
-   if(actual.width&&actual.height){$('resolutionSetting').textContent=actual.width+' × '+actual.height+' · '+(actual.width*actual.height/1e6).toFixed(1)+' MP';}
-  }
+  stream=await navigator.mediaDevices.getUserMedia({
+   audio:false,video:{facingMode:{ideal:facing},width:{ideal:1920},height:{ideal:1440}}
+  });
   video.srcObject=stream;
-  video.setAttribute('playsinline','');
   await video.play();
   torchOn=false;$('torchBtn').textContent='FLASH OFF';$('torchBtn').classList.remove('active');
   setControlSupport();
@@ -881,7 +907,7 @@ async function startCamera(){
   previewCanvas.style.display='block';
   $('placeholder').style.display='none';
   $('status').textContent='CAMERA READY';$('start').innerHTML='RESTART<br>CAMERA';
-  message.textContent='High-quality camera stream ready. The browser selects the best resolution supported by this device.';
+  message.textContent='Choose a recipe, adjust your film and take a photograph.';
   updatePreview();
   startPreviewLoop();
  }catch(e){
@@ -909,7 +935,7 @@ async function takePhoto(){
  try{if(selfTimer){for(let n=selfTimer;n>0;n--){message.textContent='Get ready… '+n;await new Promise(r=>setTimeout(r,1000));}}
  const width=video.videoWidth,height=video.videoHeight;
  if(!width||!height){message.textContent='Camera is not ready yet.';return;}
- const ratio=activeAspectRatio, sourceRatio=width/height;
+ const selected=$('aspectRatio')?.value||'4/3'; const [aspectW,aspectH]=selected.split('/').map(Number); const ratio=aspectW/aspectH, sourceRatio=width/height;
  let sx=0,sy=0,sw=width,sh=height;
  if(sourceRatio>ratio){sw=height*ratio;sx=(width-sw)/2;}
  else{sh=width/ratio;sy=(height-sh)/2;}
@@ -920,7 +946,7 @@ async function takePhoto(){
  if(facing==='user'){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
  ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
  ctx.restore();
- const originalBlob=await canvasBlob(canvas,1.0);
+ const originalBlob=await canvasBlob(canvas);
  if(!originalBlob){message.textContent='Could not create original photograph.';return;}
  // Film image: apply the exact same pixel pipeline used by the live preview.
  try{
@@ -1191,24 +1217,15 @@ function toggleZen(force){
  else{$('start').innerHTML=stream?'RESTART CAMERA':'START CAMERA';message.textContent='Camera controls restored.';}
 }
 function setAspect(value){
- const [w,h]=value.split('/').map(Number);
- if(!w||!h)return;
- activeAspectRatio=w/h;
- v3State.aspect=value;
- const ratioLabel=`${w}:${h}`;
- $('viewFormat').textContent='JPEG · '+ratioLabel;
- $('topFormat').textContent=$('topFormat').textContent.replace(/· [^·]+$/,'· '+ratioLabel);
+ v3State.aspect=value;$('viewFormat').textContent='JPEG · '+value.replace('/',' : ');$('topFormat').textContent=$('topFormat').textContent.replace(/· [^·]+$/,'· '+value);
  $('aspectRatio').value=value;
- const finder=$('viewfinder');
- finder.style.setProperty('--finder-ratio',`${w} / ${h}`);
- finder.style.aspectRatio=`${w} / ${h}`;
- // Re-render immediately so the displayed crop matches the newly sized frame.
- if(stream && video.readyState>=2)renderLivePreview();
+ const [w,h]=value.split('/').map(Number);
+ $('viewfinder').style.aspectRatio=`${w}/${h}`;
+ // Re-render immediately so the visible live image changes with the selected frame.
+ if(stream && video.readyState>=2) renderLivePreview();
  updateExposureReadouts();
 }
 $('aspectRatio').addEventListener('change',e=>setAspect(e.target.value));
-// Classic 4:3 is the default composition on every fresh launch.
-setAspect('4/3');
 $('outputQuality').addEventListener('change',e=>{jpegQuality=Number(e.target.value);$('qualityBtn').textContent='JPEG · '+(jpegQuality>=.98?'MAX':jpegQuality>=.94?'HIGH':'BALANCED');persistCameraPrefs();});
 
 function renderOpticsPanel(){
@@ -1265,36 +1282,17 @@ takePhoto=async function(){
  shutterBusy=true;$('shutter').style.opacity='.55';
  try{
   if(selfTimer){for(let n=selfTimer;n>0;n--){message.textContent='Get ready… '+n;await new Promise(r=>setTimeout(r,1000));}}
-  // Prefer a native still-photo capture when the browser exposes ImageCapture.
-  // This can exceed the resolution of the live video stream. Safari/iOS may not
-  // support it, so the live stream remains a safe, automatic fallback.
-  let captureSource=video, captureBitmap=null, captureMethod='LIVE STREAM';
-  const track=stream.getVideoTracks()[0];
-  if(track && 'ImageCapture' in window && typeof window.ImageCapture==='function' && window.createImageBitmap){
-   try{
-    const stillCapture=new ImageCapture(track);
-    const stillBlob=await stillCapture.takePhoto();
-    captureBitmap=await createImageBitmap(stillBlob);
-    captureSource=captureBitmap;
-    captureMethod='NATIVE STILL';
-   }catch(stillError){console.warn('Native still capture unavailable; using full-resolution video frame.',stillError);}
-  }
-  const width=captureSource===video?video.videoWidth:captureSource.width;
-  const height=captureSource===video?video.videoHeight:captureSource.height;
-  if(!width||!height){captureBitmap?.close?.();message.textContent='Camera is not ready yet.';return;}
+  const width=video.videoWidth,height=video.videoHeight;
+  if(!width||!height){message.textContent='Camera is not ready yet.';return;}
   const [rw,rh]=v3State.aspect.split('/').map(Number),ratio=rh/rw,sourceRatio=width/height;
   let sx=0,sy=0,sw=width,sh=height;
   if(sourceRatio>ratio){sw=height*ratio;sx=(width-sw)/2;}else{sh=width/ratio;sy=(height-sh)/2;}
   canvas.width=Math.round(sw);canvas.height=Math.round(sh);
   ctx.save();
   if(facing==='user'&&$('mirrorFront').checked){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
-  ctx.drawImage(captureSource,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
+  ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
   ctx.restore();
-  captureBitmap?.close?.();
-  const capturedMP=(canvas.width*canvas.height/1e6).toFixed(2);
-  $('resolutionSetting').textContent=`${canvas.width} × ${canvas.height} · ${capturedMP} MP (${captureMethod})`;
-  $('topFormat').textContent=`JPEG · ${capturedMP} MP · ${v3State.aspect}`;
-  const originalBlob=await canvasBlob(canvas,1.0);
+  const originalBlob=await canvasBlob(canvas);
   if(!originalBlob){message.textContent='Could not create original photograph.';return;}
   const frame=ctx.getImageData(0,0,canvas.width,canvas.height);
   processFilmPixels(frame,currentSettings(),7,v3State.lutMode==='baked');
@@ -1328,11 +1326,12 @@ async function getOptionalLocation(){
 }
 function renderLivePreview(){
  if(!stream||video.readyState<2||!video.videoWidth)return;
- const [rw,rh]=v3State.aspect.split('/').map(Number),ratio=rh/rw;
+ const [rw,rh]=v3State.aspect.split('/').map(Number),ratio=rw/rh;
  const vw=video.videoWidth,vh=video.videoHeight,source=vw/vh;
  let sx=0,sy=0,sw=vw,sh=vh;
  if(source>ratio){sw=vh*ratio;sx=(vw-sw)/2;}else{sh=vw/ratio;sy=(vh-sh)/2;}
- const scale=Math.min(1,1200/sh),w=Math.max(1,Math.round(sw*scale)),h=Math.max(1,Math.round(sh*scale));
+ const maxPreviewHeight=1440;
+ const scale=Math.min(1,maxPreviewHeight/sh),w=Math.max(1,Math.round(sw*scale)),h=Math.max(1,Math.round(sh*scale));
  if(previewCanvas.width!==w||previewCanvas.height!==h){previewCanvas.width=w;previewCanvas.height=h;}
  previewCtx.drawImage(video,sx,sy,sw,sh,0,0,w,h);
  try{const frame=previewCtx.getImageData(0,0,w,h);processFilmPixels(frame,currentSettings(),7,true);previewCtx.putImageData(frame,0,0);}
