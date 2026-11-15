@@ -105,6 +105,66 @@ body.drawer-open{overflow:hidden}
 @media(max-height:700px){.viewfinder{height:42svh;width:min(100%,calc(42svh * .75));min-height:220px}.shutter{width:58px;height:58px}}
 @media(max-width:380px){.app{padding-left:12px;padding-right:12px}.recipe{font-size:9px}.recipeName{font-size:23px}}
 
+
+/* ===== AOMSAMUT FILM LAB · camera-inspired interface refresh ===== */
+:root{--bg:#101010;--cream:#f4f1e9;--orange:#f26a35;--panel:#202022;--line:#373739}
+html{background:var(--bg);color-scheme:dark}
+body{background:#101010;color:var(--cream);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif}
+.app{max-width:620px;padding:0 0 calc(18px + env(safe-area-inset-bottom))}
+.camera-stage{position:relative;top:auto;background:#101010;padding:0;border:0}
+header{min-height:58px;padding:calc(8px + env(safe-area-inset-top)) 16px 10px;gap:10px;display:grid;grid-template-columns:1fr auto auto}
+.brand{font-size:13px;letter-spacing:2px;font-weight:700;white-space:nowrap}
+.subbrand{font-size:8px;letter-spacing:2px;margin-top:3px}
+.status{font-size:8px;letter-spacing:1.2px;text-align:center;white-space:nowrap}
+#settingsOpen{border:0;border-radius:22px;background:#242426;color:#eee;padding:10px 13px;font-size:9px;letter-spacing:1px}
+.viewfinder{width:100%;height:min(66svh,760px);min-height:340px;max-height:none;aspect-ratio:3/4;margin:0 auto;border-radius:13px;background:#252525;overflow:hidden}
+#video{display:none}
+#previewCanvas{display:none;object-fit:cover}
+#placeholder{max-width:270px}
+#placeholder .symbol{font-size:52px}
+#placeholder p{font-size:11px}
+.grid{opacity:.34}
+.viewlabel{top:16px;left:16px;font-size:9px;letter-spacing:2.5px}
+.viewbottom{left:16px;right:16px;bottom:16px;font-size:9px}
+.controls{max-width:none;margin:10px 0 0;padding:0 18px;min-height:78px;display:grid;grid-template-columns:1fr 94px 1fr;align-items:center;gap:12px}
+.tool{color:#eee;font-size:9px;letter-spacing:1.4px;padding:12px 4px}
+#start{text-align:left}
+#flip{text-align:right}
+.shutter{width:78px;height:78px;justify-self:center;background:#e8e8e8;border:5px solid #f7f7f7;box-shadow:0 0 0 6px #ffffff20}
+.shutter:active{transform:scale(.95)}
+.sectionhead{margin:14px 16px 9px;padding-top:13px;border-top:1px solid var(--line)}
+.eyebrow{font-size:9px;letter-spacing:2px;color:#aaa}
+.recipeName{font-size:20px;margin-top:3px}
+.description{font-size:9px;color:#929292;margin-top:3px}
+#recipeCount{font-size:8px}
+.recipes{display:flex;gap:7px;overflow-x:auto;padding:0 16px 12px;scrollbar-width:none}
+.recipes::-webkit-scrollbar,#photos::-webkit-scrollbar{display:none}
+.recipe{flex:0 0 94px;min-height:48px;padding:8px 5px;border-radius:8px;background:#202022;border:1px solid #414143;font-size:9px}
+.recipe small{font-size:7px;margin-top:3px}
+#message{min-height:0;padding:8px 16px 0;font-size:9px}
+.gallery{margin:10px 16px 0;padding-top:13px;border-top:1px solid var(--line)}
+.gallery>.description{display:none}
+.gallery>.eyebrow{display:flex;justify-content:space-between;align-items:center}
+.gallery>.eyebrow:after{content:"VIEW ALL  →";color:var(--orange);font-size:8px;letter-spacing:1px}
+#photos{gap:8px;padding:10px 0 4px;overflow-x:auto}
+.photoitem{flex:0 0 74px;width:74px}
+.photoitem img{width:74px;height:92px;object-fit:cover;border-radius:7px;background:#262626}
+.photoitem .photo-date{font-size:7px;padding-top:4px;color:#888}
+.photo-actions{display:none}
+#galleryEmpty{font-size:9px;color:#777;padding:8px 0}
+.footer{padding:16px 0 4px;font-size:8px}
+.settings-drawer{max-height:84svh;padding:10px 18px calc(22px + env(safe-area-inset-bottom));background:#1a1a1b}
+.settings-drawer .panel,.settings-drawer .camera-panel{margin-top:12px}
+.settings-drawer .control{margin:10px 0}
+.camera-tools button,.timer-select{border-radius:8px}
+.modal{padding:18px}
+.modal img{max-height:67svh}
+.modal-actions button{border-radius:22px}
+@media(min-width:621px){.app{padding-left:0;padding-right:0}.viewfinder{height:min(66svh,760px);width:min(100%,570px)}.controls{max-width:570px;margin:10px auto 0}}
+@media(max-height:700px){.viewfinder{height:55svh;min-height:270px}.shutter{width:64px;height:64px}.controls{min-height:68px}}
+@media(max-width:380px){header{padding-left:12px;padding-right:12px}.brand{font-size:11px;letter-spacing:1.6px}#settingsOpen{padding:9px 10px;font-size:8px}.viewfinder{height:61svh;min-height:290px}.controls{padding:0 13px;grid-template-columns:1fr 82px 1fr}.shutter{width:68px;height:68px}}
+.photoitem img{cursor:pointer}
+
 </style>
 </head>
 <body>
@@ -274,12 +334,11 @@ async function renderGallery(){
   const url=URL.createObjectURL(photo.filmBlob);galleryUrls.push(url);
   image.src=url;image.alt=photo.filmName;image.loading='lazy';
   image.addEventListener('click',()=>openPhoto(photo.id));
-  const actions=document.createElement('div');actions.className='photo-actions';
-  const filmBtn=document.createElement('button');filmBtn.className='film-save';filmBtn.textContent='SAVE FILM';
-  filmBtn.addEventListener('click',()=>savePhotoVersion(photo.id,'film'));
-  const originalBtn=document.createElement('button');originalBtn.textContent='ORIGINAL';
-  originalBtn.addEventListener('click',()=>savePhotoVersion(photo.id,'original'));
-  actions.append(filmBtn,originalBtn);const date=document.createElement('div');date.className='photo-date';date.textContent=new Date(photo.createdAt).toLocaleDateString();item.append(image,actions,date);container.append(item);
+  const date=document.createElement('div');
+  date.className='photo-date';
+  date.textContent=new Date(photo.createdAt).toLocaleDateString();
+  item.append(image,date);
+  container.append(item);
  });
 }
 async function openPhoto(id){
