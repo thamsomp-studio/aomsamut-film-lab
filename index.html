@@ -751,72 +751,89 @@ function currentSettings() {
 }
 function processFilmPixels(imageData, settings, seed=1) {
  const d=imageData.data, s=settings;
- const exposure=s.exposure;
- const warmth=s.warmth;
- const saturation=s.saturation;
- const contrast=s.contrast;
- const tempShift=(s.temperature-5500)/1000;
- const grainAmount=Math.max(0,s.grain)*0.16;
+ const exposure=s.exposure||1;
+ const saturation=s.saturation||1;
+ const contrast=s.contrast||1;
+ const warmth=s.warmth||0;
+ const tempShift=((s.temperature||5500)-5500)/1000;
+ const tint=s.tint||0;
+ const grainAmount=Math.max(0,s.grain||0)*0.105;
  const fade=s.fade||0;
- const shoulder=s.shoulder||0.14;
- const toe=s.toe||0.015;
+ const toe=s.toe||0.012;
+ const shoulder=s.shoulder||0.12;
  const highlightWarmth=s.highlightWarmth||0;
  const shadowCool=s.shadowCool||0;
  const greenBias=s.green||0;
  const blueBias=s.blue||0;
- const mix=(a,b,t)=>a+(b-a)*t;
 
- // One deterministic, fine-grain pass. The same frame seed keeps the live
- // preview stable rather than making the image shimmer.
+ // Canvas supplies gamma-encoded sRGB, not sensor RAW. Decode it to linear
+ // light first so exposure, white balance and colour mixing behave more like
+ // a photographic negative/RAW development pipeline.
+ const toLinear=v=>{
+  v=Math.max(0,Math.min(1,v));
+  return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4);
+ };
+ const toSrgb=v=>{
+  v=Math.max(0,v);
+  return v<=0.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-0.055;
+ };
+ const smooth=t=>t*t*(3-2*t);
+ const clamp=v=>Math.max(0,Math.min(1,v));
+
+ // A restrained print-like curve: gentle toe and shoulder with no aggressive
+ // HDR look. The curve is normalised to preserve a clean white point.
+ const filmCurve=(x)=>{
+  x=Math.max(0,x);
+  const black=toe*0.22;
+  const y=(x*(1.0+shoulder*0.55)+black)/(1+x*shoulder*0.55);
+  return y;
+ };
+
  for(let i=0,pixel=0;i<d.length;i+=4,pixel++){
-  let r=d[i]*exposure, g=d[i+1]*exposure, b=d[i+2]*exposure;
+  let r=toLinear(d[i]/255);
+  let g=toLinear(d[i+1]/255);
+  let b=toLinear(d[i+2]/255);
 
-  // White balance and tint are gentle finishing corrections, not a substitute
-  // for the iPhone's automatic sensor white balance.
-  r += tempShift*4.2 + s.tint*0.20;
-  g -= s.tint*0.34;
-  b -= tempShift*4.2 - s.tint*0.15;
+  // Exposure in linear light, before the film response.
+  r*=exposure; g*=exposure; b*=exposure;
 
-  // Film stock colour separation: slightly warmer highlights, cooler shadows.
-  const lum0=0.2126*r+0.7152*g+0.0722*b;
-  const hi=Math.max(0,Math.min(1,(lum0-92)/145));
-  const sh=1-Math.max(0,Math.min(1,(lum0-12)/118));
-  const hi2=hi*hi*(3-2*hi);
-  const sh2=sh*sh*(3-2*sh);
+  // Gentle white-balance/tint adjustment in linear light.
+  const warm=Math.max(-0.08,Math.min(0.08,(warmth*0.0022)+(tempShift*0.012)));
+  const green=Math.max(-0.06,Math.min(0.06,(tint*-0.0018)+(greenBias*0.0018)));
+  r*=1+warm;
+  g*=1+green;
+  b*=1-warm*0.82+tempShift*-0.002;
 
-  r += warmth*0.30 + highlightWarmth*hi2*0.85 - shadowCool*sh2*0.22;
-  g += warmth*0.045 + greenBias*1.15*hi2;
-  b -= warmth*0.22 + highlightWarmth*hi2*0.48;
-  b += blueBias*1.25*sh2 + shadowCool*sh2*0.52;
-
-  // Saturation around perceptual luma, followed by a soft contrast curve.
+  // Luminance-dependent film dye crossover: golden highlights and subtly
+  // cooler shadows, kept intentionally restrained for believable skin.
   const lum=0.2126*r+0.7152*g+0.0722*b;
-  r=lum+(r-lum)*saturation;
-  g=lum+(g-lum)*saturation;
-  b=lum+(b-lum)*saturation;
+  const hi=smooth(clamp((lum-0.30)/0.58));
+  const sh=1-smooth(clamp((lum-0.018)/0.28));
+  r*=1+hi*highlightWarmth*0.0045-sh*shadowCool*0.0016;
+  g*=1+hi*greenBias*0.0025;
+  b*=1-hi*highlightWarmth*0.0027+sh*(shadowCool*0.0032+blueBias*0.0028);
 
-  r=(r-118)*contrast+118;
-  g=(g-118)*contrast+118;
-  b=(b-118)*contrast+118;
+  // Film-like saturation and contrast in linear light.
+  const y=0.2126*r+0.7152*g+0.0722*b;
+  r=y+(r-y)*saturation;
+  g=y+(g-y)*saturation;
+  b=y+(b-y)*saturation;
 
-  // Film-like toe and shoulder. The shoulder eases in smoothly, avoiding
-  // the clipped, chalky highlights produced by a simple brightness filter.
-  r=Math.max(0,Math.min(255,r))/255;
-  g=Math.max(0,Math.min(255,g))/255;
-  b=Math.max(0,Math.min(255,b))/255;
-  r=(r+toe)/(1+toe);g=(g+toe)/(1+toe);b=(b+toe)/(1+toe);
-  let tr=Math.max(0,Math.min(1,(r-0.62)/0.38));
-  let tg=Math.max(0,Math.min(1,(g-0.62)/0.38));
-  let tb=Math.max(0,Math.min(1,(b-0.62)/0.38));
-  r-=shoulder*0.16*(tr*tr*(3-2*tr));
-  g-=shoulder*0.16*(tg*tg*(3-2*tg));
-  b-=shoulder*0.16*(tb*tb*(3-2*tb));
-  r=(r+fade*(1-r)*0.10)*255;
-  g=(g+fade*(1-g)*0.10)*255;
-  b=(b+fade*(1-b)*0.10)*255;
+  // Contrast pivots around a photographic middle grey rather than clipping
+  // highlights and shadows with a simple RGB multiplier.
+  const pivot=0.18;
+  r=pivot+(r-pivot)*contrast;
+  g=pivot+(g-pivot)*contrast;
+  b=pivot+(b-pivot)*contrast;
 
-  // Fine, mostly luminance-based grain. Keep chroma noise lower so skies,
-  // skin and shadows stay clean at phone resolution.
+  r=filmCurve(r); g=filmCurve(g); b=filmCurve(b);
+
+  // Very light print fade, mostly affecting the toe.
+  r=r+fade*0.0025*(1-r);
+  g=g+fade*0.0025*(1-g);
+  b=b+fade*0.0025*(1-b);
+
+  // Fine luminance grain, added after tonal rendering. Chroma remains cleaner.
   if(grainAmount>0){
    let x=(pixel+seed*374761393)|0;
    x=Math.imul(x^(x>>>13),1274126177);
@@ -825,13 +842,13 @@ function processFilmPixels(imageData, settings, seed=1) {
    const n2=((x^(x>>>13))>>>0)/4294967295;
    x=Math.imul((x+0x165667B1)|0,3266489917);
    const n3=((x^(x>>>16))>>>0)/4294967295;
-   const noise=((n1+n2+n3)-1.5)*grainAmount*1.65;
-   r+=noise;g+=noise*0.92;b+=noise*0.82;
+   const noise=((n1+n2+n3)-1.5)*grainAmount*0.055;
+   r+=noise; g+=noise*0.94; b+=noise*0.86;
   }
 
-  d[i]=r<0?0:r>255?255:r;
-  d[i+1]=g<0?0:g>255?255:g;
-  d[i+2]=b<0?0:b>255?255:b;
+  d[i]=clamp(toSrgb(r))*255;
+  d[i+1]=clamp(toSrgb(g))*255;
+  d[i+2]=clamp(toSrgb(b))*255;
  }
  return imageData;
 }
@@ -1049,10 +1066,11 @@ async function takePhoto(){
  ctx.restore();
  const originalBlob=await canvasBlob(canvas);
  if(!originalBlob){message.textContent='Could not create original photograph.';return;}
- // Film image: apply the exact same pixel pipeline used by the live preview.
+ // Develop the captured source frame immediately after capture. The original
+ // blob above is already preserved; only the working canvas copy is graded.
  try{
   const frame=ctx.getImageData(0,0,canvas.width,canvas.height);
-  processFilmPixels(frame,currentSettings(),7);
+  processFilmPixels(frame,currentSettings(),photoNumber+7);
   ctx.putImageData(frame,0,0);
  }catch(e){
   console.error(e);
