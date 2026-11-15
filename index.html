@@ -329,29 +329,28 @@ async function takePhoto(){
  const originalUrl=URL.createObjectURL(originalBlob);
  addToGallery(filmUrl,filmName);
  addOriginalDownload(originalUrl,originalName);
- const originalFile=new File([originalBlob],originalName,{type:'image/jpeg'});
  const filmFile=new File([filmBlob],filmName,{type:'image/jpeg'});
  try{
-  if(navigator.canShare && navigator.canShare({files:[originalFile,filmFile]})){
+  // IMPORTANT: The primary Save action shares ONLY the processed film JPEG.
+  // The untouched original is offered separately as SAVE ORIGINAL.
+  if(navigator.canShare && navigator.canShare({files:[filmFile]})){
    await navigator.share({
-    files:[originalFile,filmFile],
-    title:'AOMSAMUT FILM LAB',
-    text:'Original JPEG + '+recipes[current].name+' film JPEG'
+    files:[filmFile],
+    title:filmName,
+    text:recipes[current].name+' — AOMSAMUT FILM LAB'
    });
-   message.textContent='Both versions are ready. Choose Save Images to save them to Photos.';
+   message.textContent='Film JPEG shared. Choose Save Image to save the edited photograph to Photos.';
   }else{
-   // Fallback: download the film JPEG; original can be downloaded separately.
    const a=document.createElement('a');
    a.href=filmUrl;a.download=filmName;a.click();
-   message.textContent='Film JPEG downloaded. Use SAVE ORIGINAL in your film roll for the untouched JPEG.';
+   message.textContent='Film JPEG downloaded. The original is available separately in your film roll.';
   }
  }catch(e){
   if(e.name==='AbortError'){
-   message.textContent='Both JPEGs were created. Tap SHARE BOTH in the film roll to save them.';
+   message.textContent='Film JPEG is ready in your film roll. Tap SAVE FILM PHOTO to share it again.';
   }else{
    console.error(e);
-   message.textContent='Both JPEGs were created, but sharing was unavailable.';
-   addOriginalDownload(originalUrl,originalName);
+   message.textContent='Film JPEG created. Tap SAVE FILM PHOTO in your film roll.';
   }
  }
 }
@@ -366,7 +365,7 @@ function addToGallery(url,name){
  if(!$('photos').querySelector('img'))$('photos').innerHTML='';
  const item=document.createElement('div');item.className='photoitem';
  const img=document.createElement('img');img.src=url;img.alt=name;
- const btn=document.createElement('button');btn.textContent='SAVE PHOTO';
+ const btn=document.createElement('button');btn.textContent='SAVE FILM PHOTO';
  btn.addEventListener('click',async()=>{
   try{
    const response=await fetch(url);
