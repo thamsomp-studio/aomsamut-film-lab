@@ -1284,14 +1284,29 @@ takePhoto=async function(){
   if(selfTimer){for(let n=selfTimer;n>0;n--){message.textContent='Get ready… '+n;await new Promise(r=>setTimeout(r,1000));}}
   const width=video.videoWidth,height=video.videoHeight;
   if(!width||!height){message.textContent='Camera is not ready yet.';return;}
-  const [rw,rh]=v3State.aspect.split('/').map(Number),ratio=rw/rh,sourceRatio=width/height;
+  // Capture must use the exact same ratio as the live viewfinder.
+  // Calculate a centered source crop, then explicitly create an output canvas
+  // whose width/height orientation matches the selected ratio.
+  const [rw,rh]=v3State.aspect.split('/').map(Number);
+  const ratio=rw/rh,sourceRatio=width/height;
   let sx=0,sy=0,sw=width,sh=height;
-  if(sourceRatio>ratio){sw=height*ratio;sx=(width-sw)/2;}else{sh=width/ratio;sy=(height-sh)/2;}
-  canvas.width=Math.round(sw);canvas.height=Math.round(sh);
+  if(sourceRatio>ratio){sw=height*ratio;sx=(width-sw)/2;}
+  else{sh=width/ratio;sy=(height-sh)/2;}
+  const scale=Math.min(1,2560/Math.max(sw,sh));
+  let outputWidth=Math.max(1,Math.round(sw*scale));
+  let outputHeight=Math.max(1,Math.round(sh*scale));
+  // Enforce portrait/landscape/square orientation from the selected ratio.
+  if(ratio<1) outputWidth=Math.max(1,Math.round(outputHeight*ratio));
+  else if(ratio>1) outputHeight=Math.max(1,Math.round(outputWidth/ratio));
+  canvas.width=outputWidth;
+  canvas.height=outputHeight;
   ctx.save();
   if(facing==='user'&&$('mirrorFront').checked){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
   ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
   ctx.restore();
+  if((ratio<1 && canvas.width>=canvas.height) || (ratio>1 && canvas.width<=canvas.height)){
+    throw new Error('Captured canvas orientation does not match selected aspect ratio');
+  }
   const originalBlob=await canvasBlob(canvas);
   if(!originalBlob){message.textContent='Could not create original photograph.';return;}
   const frame=ctx.getImageData(0,0,canvas.width,canvas.height);
@@ -1305,12 +1320,13 @@ takePhoto=async function(){
    filmName:'AOMSAMUT-'+current.toUpperCase()+'-'+n+'.jpg',
    originalName:'AOMSAMUT-ORIGINAL-'+n+'.jpg',
    recipe:current,filmBlob,originalBlob,createdAt:Date.now(),
-   settings:currentSettings(),aspect:v3State.aspect,lutName:v3State.lutName,
+   settings:currentSettings(),aspect:v3State.aspect,
+   pixelWidth:canvas.width,pixelHeight:canvas.height,lutName:v3State.lutName,
    location
   };
   try{
    await storePhoto(record);await renderGallery();
-   message.textContent='Film JPEG and original saved to your Film Roll.';
+   message.textContent='Saved '+v3State.aspect+' photo ('+canvas.width+' × '+canvas.height+' px) to your Film Roll.';
   }catch(e){
    console.error(e);message.textContent='Photo captured, but local Film Roll storage failed.';
   }
