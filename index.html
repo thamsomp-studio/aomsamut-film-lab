@@ -466,7 +466,7 @@ body.zen #settingsOpen{display:none}
  <button class="recipe active" data-recipe="gold">GOLD 200<small>KODAK</small></button>
  <button class="recipe" data-recipe="ultra">ULTRAMAX<small>KODAK</small></button>
  <button class="recipe" data-recipe="fuji">FUJI 400<small>FUJIFILM</small></button>
- <button class="recipe" data-recipe="chrome">CHROME<small>FUJIFILM</small></button>
+ <button class="recipe" data-recipe="chrome">CLASSIC CHROME<small>FUJIFILM</small></button>
  <button class="recipe" data-recipe="portra">PORTRA 400<small>KODAK</small></button>
  <button class="recipe" data-recipe="portra800">PORTRA 800<small>KODAK</small></button>
  <button class="recipe" data-recipe="fuji400h">PRO 400H<small>FUJIFILM</small></button>
@@ -572,7 +572,7 @@ const recipes={
  gold:{name:'Kodak Gold 200',short:'GOLD 200',desc:'Warm sunlit highlights · Creamy whites · Gentle nostalgic colour',filter:'',warm:1,sat:101,con:98},
  ultra:{name:'Kodak Ultramax 400',short:'ULTRAMAX',desc:'Lively travel colour · Warm skin · Rich but natural greens',filter:'',warm:1,sat:105,con:102},
  fuji:{name:'Fujifilm 400',short:'FUJI 400',desc:'Fresh greens · Soft daylight · Calm natural skin tones',filter:'',warm:0,sat:102,con:98},
- chrome:{name:'Fujifilm Classic Chrome',short:'CHROME',desc:'Muted editorial colour · Earthy shadows · Restrained saturation',filter:'',warm:0,sat:91,con:102},
+ chrome:{name:'Fujifilm Classic Chrome',short:'CLASSIC CHROME',desc:'Strong muted colour · Deep cyan shadows · Warm earthy highlights',filter:'',warm:0,sat:91,con:102},
  portra:{name:'Kodak Portra 400',short:'PORTRA 400',desc:'Soft portrait colour · Warm skin · Airy highlights · Open shadows',filter:'',warm:1,sat:97,con:96},
  portra800:{name:'Kodak Portra 800',short:'PORTRA 800',desc:'Warm late-afternoon tones · Gentle grain · Deeper cinematic shadows',filter:'',warm:2,sat:96,con:98},
  fuji400h:{name:'Fujifilm Pro 400H',short:'PRO 400H',desc:'Pastel greens · Delicate pinks · Soft creamy highlights',filter:'',warm:0,sat:93,con:94},
@@ -739,17 +739,17 @@ function updateLabels(){
 // One pixel-processing pipeline powers both the live preview and saved JPEG.
 // The preview is rendered at a smaller resolution for smooth performance on iPhone.
 function filmProfile() {
- // Eight restrained, reference-inspired colour stocks. The look is developed
- // from the camera JPEG immediately after capture; it is not a sensor RAW pipeline.
+ // Stronger stock-inspired grades. The original/flat JPEG branch is separate
+ // and is not changed by these profiles.
  const profiles = {
-  gold:      {warmth:0.85,saturation:1.015,contrast:0.975,green:0.00,blue:0.00,fade:0.018,highlightWarmth:0.75,shadowCool:0.12,shoulder:0.105,toe:0.014,grain:7},
-  ultra:     {warmth:0.75,saturation:1.065,contrast:1.005,green:0.01,blue:-0.02,fade:0.010,highlightWarmth:0.55,shadowCool:0.10,shoulder:0.075,toe:0.008,grain:9},
-  fuji:      {warmth:0.05,saturation:1.015,contrast:0.965,green:0.035,blue:0.08,fade:0.020,highlightWarmth:0.18,shadowCool:0.28,shoulder:0.11,toe:0.016,grain:7},
-  chrome:    {warmth:-0.12,saturation:0.91,contrast:0.985,green:0.035,blue:0.12,fade:0.026,highlightWarmth:0.05,shadowCool:0.28,shoulder:0.10,toe:0.020,grain:6},
-  portra:    {warmth:0.55,saturation:0.965,contrast:0.945,green:0.005,blue:0.015,fade:0.032,highlightWarmth:0.62,shadowCool:0.12,shoulder:0.15,toe:0.026,grain:8},
-  portra800: {warmth:0.72,saturation:0.955,contrast:0.975,green:0.015,blue:-0.005,fade:0.020,highlightWarmth:0.58,shadowCool:0.16,shoulder:0.12,toe:0.018,grain:12},
-  fuji400h:  {warmth:0.10,saturation:0.925,contrast:0.925,green:0.055,blue:0.075,fade:0.038,highlightWarmth:0.22,shadowCool:0.22,shoulder:0.16,toe:0.030,grain:6},
-  ektar:     {warmth:0.10,saturation:1.085,contrast:1.015,green:0.015,blue:0.025,fade:0.008,highlightWarmth:0.16,shadowCool:0.08,shoulder:0.085,toe:0.008,grain:5}
+  gold:      {warmth:1.25,saturation:1.105,contrast:1.075,green:0.005,blue:-0.025,fade:0.008,highlightWarmth:1.55,shadowCool:0.16,shoulder:0.135,toe:0.018,grain:0},
+  ultra:     {warmth:1.00,saturation:1.175,contrast:1.115,green:0.025,blue:-0.055,fade:0.004,highlightWarmth:1.15,shadowCool:0.13,shoulder:0.105,toe:0.012,grain:0},
+  fuji:      {warmth:0.10,saturation:1.105,contrast:1.055,green:0.075,blue:0.17,fade:0.014,highlightWarmth:0.30,shadowCool:0.48,shoulder:0.135,toe:0.020,grain:0},
+  chrome:    {warmth:-0.30,saturation:0.835,contrast:1.185,green:0.12,blue:0.29,fade:0.020,highlightWarmth:0.12,shadowCool:0.78,shoulder:0.115,toe:0.022,grain:0},
+  portra:    {warmth:0.95,saturation:1.035,contrast:1.025,green:0.008,blue:0.012,fade:0.018,highlightWarmth:1.10,shadowCool:0.18,shoulder:0.18,toe:0.030,grain:0},
+  portra800: {warmth:1.28,saturation:1.055,contrast:1.095,green:0.018,blue:-0.015,fade:0.010,highlightWarmth:1.38,shadowCool:0.25,shoulder:0.15,toe:0.018,grain:0},
+  fuji400h:  {warmth:0.12,saturation:1.015,contrast:0.965,green:0.095,blue:0.16,fade:0.026,highlightWarmth:0.26,shadowCool:0.42,shoulder:0.175,toe:0.032,grain:0},
+  ektar:     {warmth:0.12,saturation:1.235,contrast:1.145,green:0.025,blue:0.075,fade:0.003,highlightWarmth:0.20,shadowCool:0.10,shoulder:0.09,toe:0.009,grain:0}
  };
  return profiles[current] || profiles.gold;
 }
@@ -760,7 +760,7 @@ function currentSettings() {
   warmth: p.warmth + v.warmth,
   saturation: p.saturation * (v.saturation/100),
   contrast: p.contrast * (v.contrast/100),
-  grain: p.grain + v.grain,
+  grain: Math.max(0, v.grain),
   temperature: v.temperature,
   tint: v.tint,
   green: p.green,
@@ -774,37 +774,75 @@ function currentSettings() {
 }
 function processFilmPixels(imageData, settings, seed=1) {
  const d=imageData.data, s=settings;
- const exposure=s.exposure||1, saturation=s.saturation||1, contrast=s.contrast||1;
- const warmth=s.warmth||0, fade=s.fade||0, grainAmount=Math.max(0,s.grain||0);
- const tempShift=((s.temperature||5500)-5500)/1000, tint=s.tint||0;
+ const exposure=s.exposure||1;
+ const saturation=s.saturation||1;
+ const contrast=s.contrast||1;
+ const warmth=s.warmth||0;
+ const fade=Math.max(0,s.fade||0);
+ const grainAmount=Math.max(0,s.grain||0);
+ const tempShift=((s.temperature||5500)-5500)/1000;
+ const tint=s.tint||0;
+ const greenBias=s.green||0;
+ const blueBias=s.blue||0;
+ const hiWarm=s.highlightWarmth||0;
+ const shadowCool=s.shadowCool||0;
+ const shoulder=s.shoulder||0;
+ const toe=s.toe||0;
  let noiseSeed=(seed|0)||1;
- const pivot=118;
+ const clamp=v=>v<0?0:(v>1?1:v);
+
  for(let i=0;i<d.length;i+=4){
-  let r=d[i]*exposure, g=d[i+1]*exposure, b=d[i+2]*exposure;
-  const y=(0.2126*r+0.7152*g+0.0722*b)/255;
-  const shadows=(1-y)*(1-y), highlights=y*y;
-  // Warm the light, gently cool the deepest shadows, and keep whites neutral.
-  const warmBias=(warmth*1.8)+(tempShift*1.2);
-  r += warmBias + (s.highlightWarmth||0)*2.8*highlights - (s.shadowCool||0)*1.2*shadows;
-  g += (s.green||0)*3.2 + tint*0.45;
-  b += -warmBias*0.72 + (s.blue||0)*2.2 + (s.shadowCool||0)*2.5*shadows;
-  // A gentle toe and shoulder keep detail in dark fabric and bright skies.
-  const toe=(s.toe||0)*255, shoulder=(s.shoulder||0);
-  r= r + toe*(1-r/255); g=g+toe*(1-g/255); b=b+toe*(1-b/255);
-  const compress=v=>{const x=Math.max(0,Math.min(1,v/255));return (x/(1+shoulder*x))*255*(1+shoulder);};
-  r=compress(r);g=compress(g);b=compress(b);
-  const fadeMix=fade*0.65;
-  r=r*(1-fadeMix)+128*fadeMix;g=g*(1-fadeMix)+128*fadeMix;b=b*(1-fadeMix)+128*fadeMix;
+  let r=d[i]*exposure;
+  let g=d[i+1]*exposure;
+  let b=d[i+2]*exposure;
+
+  // Luminance masks let each stock colour the highlights and shadows
+  // differently, rather than applying one uniform warm/cool overlay.
+  let y=(0.2126*r+0.7152*g+0.0722*b)/255;
+  const shadows=clamp((0.62-y)*1.75);
+  const highlights=clamp((y-0.28)*1.65);
+  const midtones=clamp(1-Math.abs(y-0.48)*1.85);
+
+  const warm=(warmth*2.15)+(tempShift*1.3);
+  r += warm + hiWarm*6.6*highlights - shadowCool*1.3*shadows;
+  g += greenBias*7.5*midtones + tint*0.42 + hiWarm*0.45*highlights;
+  b += -warm*0.78 + blueBias*6.2*midtones + shadowCool*7.2*shadows - hiWarm*2.4*highlights;
+
+  // Per-stock contrast around a photographic mid-grey.
+  r=118+(r-118)*contrast;
+  g=118+(g-118)*contrast;
+  b=118+(b-118)*contrast;
+
+  // Gentle toe and shoulder: deeper film blacks while retaining highlight detail.
+  const tone=(value)=>{
+   let x=value/255;
+   if(x<0.22) x+=toe*(0.22-x)*3.0;
+   if(x>0.68){
+    const t=x-0.68;
+    x=0.68+t/(1+shoulder*t*5.0);
+   }
+   x=x*(1-fade*0.70)+0.5*fade*0.70;
+   return x*255;
+  };
+  r=tone(r);g=tone(g);b=tone(b);
+
+  // Film-stock saturation. Chrome deliberately mutes colour while keeping
+  // strong tonal separation; Ektar/Ultramax carry more vivid colour.
   const lum=0.2126*r+0.7152*g+0.0722*b;
-  r=lum+(r-lum)*saturation;g=lum+(g-lum)*saturation;b=lum+(b-lum)*saturation;
-  r=pivot+(r-pivot)*contrast;g=pivot+(g-pivot)*contrast;b=pivot+(b-pivot)*contrast;
+  r=lum+(r-lum)*saturation;
+  g=lum+(g-lum)*saturation;
+  b=lum+(b-lum)*saturation;
+
+  // Grain is opt-in via the grain slider only. Film stocks add no surprise noise.
   if(grainAmount>0){
-   // Fine, low-amplitude luminance grain; never the coarse noise seen in the earlier build.
    noiseSeed=(Math.imul(noiseSeed,1664525)+1013904223)|0;
-   const n=((noiseSeed>>>0)/4294967295-0.5)*Math.min(22,grainAmount)*0.34;
+   const n=((noiseSeed>>>0)/4294967295-0.5)*Math.min(18,grainAmount)*0.30;
    r+=n;g+=n;b+=n;
   }
-  d[i]=Math.max(0,Math.min(255,r));d[i+1]=Math.max(0,Math.min(255,g));d[i+2]=Math.max(0,Math.min(255,b));
+
+  d[i]=clamp(r/255)*255;
+  d[i+1]=clamp(g/255)*255;
+  d[i+2]=clamp(b/255)*255;
  }
  return imageData;
 }
