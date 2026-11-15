@@ -5,7 +5,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#171817">
-<title>AOMSAMUT FILM LAB v6</title>
+<title>AOMSAMUT FILM LAB · Camera Edition</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AOMSAMUT FILM LAB">
+<meta name="description" content="A film-inspired digital camera by AOMSAMUT. Capture, edit and keep your photographs.">
 <style>
 :root{--bg:#171817;--cream:#f5efe2;--orange:#f26a35;--panel:#222320}
 *{box-sizing:border-box}
@@ -64,6 +68,18 @@ input[type=range]{grid-column:1/3;width:100%;accent-color:var(--orange);height:2
 .modal-actions button{background:#252622;border:1px solid #555;color:#eee;padding:12px 16px;border-radius:4px;font-size:10px;letter-spacing:.7px}
 .modal-actions .primary{background:var(--orange);border-color:var(--orange);color:white}
 .modal-close{position:absolute;right:20px;top:calc(18px + env(safe-area-inset-top));background:none;border:1px solid #666;color:#fff;border-radius:50%;width:38px;height:38px;font-size:20px}
+.camera-panel{margin-top:20px;border-top:1px solid #393a36;padding-top:17px}
+.camera-tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.camera-tools button,.timer-select{background:#242521;border:1px solid #484943;color:#eee;border-radius:4px;padding:12px 6px;font-size:9px;letter-spacing:1px;min-height:42px}
+.camera-tools button.active{border-color:var(--orange);color:var(--orange)}
+.camera-tools button:disabled{opacity:.35}
+.camera-control{display:grid;grid-template-columns:82px 1fr 38px;gap:9px;align-items:center;margin:13px 0}
+.camera-control label{font-size:10px;color:#bbb}.camera-control output{font-size:10px;text-align:right;color:var(--orange)}
+.camera-control input{width:100%;accent-color:var(--orange);min-width:0}
+.camera-note{font-size:9px;color:#777;line-height:1.5;margin-top:10px}
+.viewfinder.focus-pulse:after{content:"";position:absolute;left:var(--focus-x,50%);top:var(--focus-y,50%);width:46px;height:46px;border:1px solid #fff;transform:translate(-50%,-50%);animation:focusfade 1s ease-out forwards;pointer-events:none}
+@keyframes focusfade{0%{opacity:1;transform:translate(-50%,-50%) scale(.8)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.25)}}
+.photoitem .photo-date{font-size:8px;color:#777;text-align:center;padding-top:3px}
 .footer{text-align:center;padding:24px 0 5px;color:#777;font-size:9px;letter-spacing:2px}
 button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 #canvas{display:none}
@@ -80,7 +96,7 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 <div class="viewfinder" id="viewfinder">
  <video id="video" autoplay playsinline muted></video><canvas id="previewCanvas"></canvas>
  <div id="placeholder"><div class="symbol">◎</div><div style="letter-spacing:3px;font-size:11px">YOUR FILM JOURNEY</div><p>Start the camera to see your world<br>through a film-inspired lens.</p></div>
- <div class="grid"></div><div id="grainPreview"></div>
+ <div class="grid" id="grid"></div><div id="grainPreview"></div>
  <div class="viewlabel">AOMSAMUT · LIVE VIEW</div>
  <div class="viewbottom"><span id="viewRecipe">KODAK GOLD 200</span><span>3:4</span></div>
 </div>
@@ -106,6 +122,23 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
  <div class="control"><label for="contrast">Contrast</label><output id="contrastValue">100%</output><input id="contrast" type="range" min="75" max="130" step="1" value="100"></div>
 </div>
 
+<div class="camera-panel">
+ <div class="paneltop"><div class="eyebrow">CAMERA CONTROLS</div><div class="eyebrow" id="cameraModeLabel">AUTO</div></div>
+ <div class="camera-tools">
+  <button id="torchBtn" type="button">FLASH · OFF</button>
+  <button id="gridBtn" type="button" class="active">GRID · ON</button>
+  <button id="timerBtn" type="button">TIMER · OFF</button>
+ </div>
+ <div class="camera-control"><label for="zoom">Zoom</label><input id="zoom" type="range" min="1" max="1" step="0.1" value="1" disabled><output id="zoomValue">1.0×</output></div>
+ <div class="camera-control"><label for="ev">Camera EV</label><input id="ev" type="range" min="-2" max="2" step="0.1" value="0" disabled><output id="evValue">0.0</output></div>
+ <div class="camera-tools">
+  <button id="focusBtn" type="button">FOCUS · AUTO</button>
+  <button id="timerCycleBtn" type="button">SELF TIMER · 0s</button>
+  <button id="qualityBtn" type="button" class="active">JPEG · HIGH</button>
+ </div>
+ <div class="camera-note" id="cameraNote">Camera controls activate when supported by your iPhone and Safari. Film adjustments always work independently.</div>
+</div>
+
 <div class="controls">
  <button class="tool" id="start">START<br>CAMERA</button>
  <button class="shutter" id="shutter" aria-label="Take photograph"></button>
@@ -117,7 +150,7 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
  <div class="eyebrow">YOUR FILM ROLL</div><div class="description">Saved on this device · Tap a photo to view, save or delete</div>
  <div id="photos"><span id="galleryEmpty">Your photographs will appear here.</span></div>
 </div>
-<div class="footer">AOMSAMUT FILM LAB · MADE WITH CARE</div>
+<div class="footer">AOMSAMUT FILM LAB · CAMERA EDITION</div>
 </div>
 <canvas id="canvas"></canvas>
 <div class="modal" id="photoModal" aria-hidden="true">
@@ -141,6 +174,8 @@ let previewTimer=null;
 const message=document.getElementById('message');
 let stream=null,facing='environment',current='gold',photoNumber=0;
 let db=null, selectedPhoto=null, galleryUrls=[];
+let cameraCaps={}, torchOn=false, gridOn=true, selfTimer=0, jpegQuality=0.98, focusModeIndex=0, shutterBusy=false;
+let focusModes=[];
 
 const recipes={
  gold:{name:'Kodak Gold 200',desc:'Warm highlights · Golden tones · Soft contrast',filter:'sepia(.13) saturate(1.22) contrast(.94) brightness(1.06) hue-rotate(-7deg)',warm:5,sat:112,con:96},
@@ -170,8 +205,11 @@ function storePhoto(record){
  return new Promise((resolve,reject)=>{
   const tx=db.transaction('photos','readwrite');
   const req=tx.objectStore('photos').add(record);
-  req.onsuccess=()=>resolve(req.result);
-  req.onerror=()=>reject(req.error);
+  let newId=null;
+  req.onsuccess=()=>{newId=req.result;};
+  tx.oncomplete=()=>resolve(newId);
+  tx.onerror=()=>reject(tx.error);
+  tx.onabort=()=>reject(tx.error||new Error('Photo save was interrupted'));
  });
 }
 function getAllPhotos(){
@@ -213,7 +251,7 @@ async function renderGallery(){
   filmBtn.addEventListener('click',()=>savePhotoVersion(photo.id,'film'));
   const originalBtn=document.createElement('button');originalBtn.textContent='ORIGINAL';
   originalBtn.addEventListener('click',()=>savePhotoVersion(photo.id,'original'));
-  actions.append(filmBtn,originalBtn);item.append(image,actions);container.append(item);
+  actions.append(filmBtn,originalBtn);const date=document.createElement('div');date.className='photo-date';date.textContent=new Date(photo.createdAt).toLocaleDateString();item.append(image,actions,date);container.append(item);
  });
 }
 async function openPhoto(id){
@@ -251,6 +289,7 @@ async function shareOrDownload(blob,name,label){
  }
 }
 $('modalClose').addEventListener('click',closePhoto);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePhoto();});
 $('photoModal').addEventListener('click',e=>{if(e.target===$('photoModal'))closePhoto();});
 $('modalSaveFilm').addEventListener('click',()=>selectedPhoto&&savePhotoVersion(selectedPhoto,'film'));
 $('modalSaveOriginal').addEventListener('click',()=>selectedPhoto&&savePhotoVersion(selectedPhoto,'original'));
@@ -396,6 +435,38 @@ $('reset').addEventListener('click',()=>{
  updatePreview();
 });
 
+function setControlSupport(){
+ const track=stream?.getVideoTracks?.()[0]; if(!track)return;
+ cameraCaps=track.getCapabilities?.()||{};
+ const settings=track.getSettings?.()||{};
+ const zoom=$('zoom'),ev=$('ev');
+ if(cameraCaps.zoom){zoom.disabled=false;zoom.min=cameraCaps.zoom.min??1;zoom.max=cameraCaps.zoom.max??5;zoom.step=cameraCaps.zoom.step??0.1;zoom.value=settings.zoom??zoom.min;$('zoomValue').textContent=Number(zoom.value).toFixed(1)+'×';}
+ else{zoom.disabled=true;$('zoomValue').textContent='N/A';}
+ const ec=cameraCaps.exposureCompensation;
+ if(ec){ev.disabled=false;ev.min=ec.min??-2;ev.max=ec.max??2;ev.step=ec.step??0.1;ev.value=settings.exposureCompensation??0;$('evValue').textContent=Number(ev.value).toFixed(1);}
+ else{ev.disabled=true;$('evValue').textContent='N/A';}
+ $('torchBtn').disabled=!cameraCaps.torch;
+ $('focusBtn').disabled=!(cameraCaps.focusMode?.length);
+ focusModes=cameraCaps.focusMode||[];
+ $('cameraModeLabel').textContent=settings.width?`${settings.width} × ${settings.height}`:'CAMERA READY';
+ const notes=[];
+ if(!cameraCaps.zoom)notes.push('zoom unavailable');if(!ec)notes.push('camera EV unavailable');if(!cameraCaps.torch)notes.push('flash/torch unavailable');
+ $('cameraNote').textContent=notes.length?'Some hardware controls are not exposed by Safari on this device: '+notes.join(', ')+'. Film adjustments remain available.':'Supported camera controls are ready. Availability may change with the selected camera.';
+}
+async function applyTrackConstraint(name,value){
+ const track=stream?.getVideoTracks?.()[0];if(!track)return false;
+ try{await track.applyConstraints({advanced:[{[name]:value}]});return true;}
+ catch(e){console.warn('Camera constraint unavailable',name,e);message.textContent='This camera control is not supported by the active iPhone camera.';return false;}
+}
+$('zoom').addEventListener('input',async()=>{ $('zoomValue').textContent=Number($('zoom').value).toFixed(1)+'×';await applyTrackConstraint('zoom',Number($('zoom').value));});
+$('ev').addEventListener('input',async()=>{ $('evValue').textContent=(Number($('ev').value)>0?'+':'')+Number($('ev').value).toFixed(1);await applyTrackConstraint('exposureCompensation',Number($('ev').value));});
+$('torchBtn').addEventListener('click',async()=>{if(!cameraCaps.torch)return;const next=!torchOn;if(await applyTrackConstraint('torch',next)){torchOn=next;$('torchBtn').textContent='FLASH · '+(torchOn?'ON':'OFF');$('torchBtn').classList.toggle('active',torchOn);}});
+$('gridBtn').addEventListener('click',()=>{gridOn=!gridOn;$('grid').style.display=gridOn?'block':'none';$('gridBtn').textContent='GRID · '+(gridOn?'ON':'OFF');$('gridBtn').classList.toggle('active',gridOn);});
+$('timerBtn').addEventListener('click',()=>{const options=[0,3,10];selfTimer=options[(options.indexOf(selfTimer)+1)%options.length];$('timerBtn').textContent='TIMER · '+(selfTimer?selfTimer+'s':'OFF');$('timerCycleBtn').textContent='SELF TIMER · '+selfTimer+'s';});
+$('timerCycleBtn').addEventListener('click',()=>$('timerBtn').click());
+$('focusBtn').addEventListener('click',async()=>{if(!focusModes.length)return;focusModeIndex=(focusModeIndex+1)%focusModes.length;const mode=focusModes[focusModeIndex];if(await applyTrackConstraint('focusMode',mode))$('focusBtn').textContent='FOCUS · '+mode.toUpperCase();});
+$('qualityBtn').addEventListener('click',()=>{jpegQuality=jpegQuality>=0.98?0.94:0.98;$('qualityBtn').textContent='JPEG · '+(jpegQuality>=0.98?'MAX':'BALANCED');$('qualityBtn').classList.toggle('active',jpegQuality>=0.98);});
+
 async function startCamera(){
  if(!navigator.mediaDevices?.getUserMedia){
   message.textContent='Camera requires Safari or Chrome on a secure HTTPS website.';return;
@@ -407,10 +478,12 @@ async function startCamera(){
   });
   video.srcObject=stream;
   await video.play();
+  torchOn=false;$('torchBtn').textContent='FLASH · OFF';$('torchBtn').classList.remove('active');
+  setControlSupport();
   video.style.display='block';
   previewCanvas.style.display='block';
   $('placeholder').style.display='none';
-  $('status').textContent='CAMERA READY';
+  $('status').textContent='CAMERA READY';$('start').innerHTML='RESTART<br>CAMERA';
   message.textContent='Choose a recipe, adjust your film and take a photograph.';
   updatePreview();
   startPreviewLoop();
@@ -427,13 +500,16 @@ $('flip').addEventListener('click',async()=>{
  else message.textContent='Camera direction selected. Start the camera.';
 });
 
-async function canvasBlob(targetCanvas, quality=0.98) {
+async function canvasBlob(targetCanvas, quality=jpegQuality) {
  return new Promise(resolve=>targetCanvas.toBlob(resolve,'image/jpeg',quality));
 }
 async function takePhoto(){
+ if(shutterBusy)return;
  if(!stream||video.readyState<2){
   message.textContent='Please start the camera first.';return;
  }
+ shutterBusy=true;$('shutter').style.opacity='.55';
+ try{if(selfTimer){for(let n=selfTimer;n>0;n--){message.textContent='Get ready… '+n;await new Promise(r=>setTimeout(r,1000));}}
  const width=video.videoWidth,height=video.videoHeight;
  if(!width||!height){message.textContent='Camera is not ready yet.';return;}
  const ratio=3/4, sourceRatio=width/height;
@@ -483,23 +559,18 @@ async function takePhoto(){
   await shareOrDownload(filmBlob,filmName,'Film photograph');
   URL.revokeObjectURL(url);
  }
+}finally{shutterBusy=false;$('shutter').style.opacity='1';}
 }
 $('shutter').addEventListener('click',takePhoto);
 
 $('viewfinder').addEventListener('click',async e=>{
- if(!stream)return;
+ if(!stream||e.target.closest('button'))return;
+ const rect=$('viewfinder').getBoundingClientRect();
+ $('viewfinder').style.setProperty('--focus-x',(e.clientX-rect.left)+'px');$('viewfinder').style.setProperty('--focus-y',(e.clientY-rect.top)+'px');
+ $('viewfinder').classList.remove('focus-pulse');void $('viewfinder').offsetWidth;$('viewfinder').classList.add('focus-pulse');
  const track=stream.getVideoTracks()[0];
- try{
-  const caps=track.getCapabilities?.();
-  if(caps?.focusMode?.includes('single-shot')){
-   await track.applyConstraints({advanced:[{focusMode:'single-shot'}]});
-   message.textContent='Auto-focus requested.';
-  }else{
-   message.textContent='Tap-to-focus is not supported by this browser camera.';
-  }
- }catch(err){
-  message.textContent='Camera focus adjustment is not supported here.';
- }
+ try{const caps=track.getCapabilities?.();if(caps?.focusMode?.includes('single-shot')){await track.applyConstraints({advanced:[{focusMode:'single-shot'}]});message.textContent='Auto-focus requested. Exact tap-point focus depends on Safari camera support.';}else{message.textContent='Focus marker shown. This iPhone browser does not expose tap-to-focus control.';}}
+ catch(err){message.textContent='Focus marker shown. Manual focus control is unavailable on this camera.';}
 });
 
 selectRecipe('gold');
