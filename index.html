@@ -20,7 +20,7 @@ header{display:flex;justify-content:space-between;align-items:center;padding:cal
 .brand span{color:var(--orange)}
 .subbrand{font-size:9px;letter-spacing:2px;color:#999;margin-top:5px}
 .status{font-size:9px;letter-spacing:1.5px;color:#aaa}
-.viewfinder{position:relative;width:min(100%, calc(49svh * .75));height:49svh;max-height:490px;min-height:260px;aspect-ratio:3/4;background:#292b28;border-radius:5px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto}
+.viewfinder{position:relative;width:min(100%, calc(49svh * .75));height:49svh;max-height:490px;min-height:260px;aspect-ratio:4/3;background:#292b28;border-radius:5px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto}
 #video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 #previewCanvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
 #placeholder{text-align:center;padding:25px;color:#aaa}
@@ -117,7 +117,7 @@ header{min-height:58px;padding:calc(8px + env(safe-area-inset-top)) 16px 10px;ga
 .subbrand{font-size:8px;letter-spacing:2px;margin-top:3px}
 .status{font-size:8px;letter-spacing:1.2px;text-align:center;white-space:nowrap}
 #settingsOpen{border:0;border-radius:22px;background:#242426;color:#eee;padding:10px 13px;font-size:9px;letter-spacing:1px}
-.viewfinder{width:100%;height:min(66svh,760px);min-height:340px;max-height:none;aspect-ratio:3/4;margin:0 auto;border-radius:13px;background:#252525;overflow:hidden}
+.viewfinder{width:100%;height:min(66svh,760px);min-height:340px;max-height:none;aspect-ratio:4/3;margin:0 auto;border-radius:13px;background:#252525;overflow:hidden}
 #video{display:none}
 #previewCanvas{display:none;object-fit:cover}
 #placeholder{max-width:270px}
@@ -191,7 +191,7 @@ header{grid-template-columns:1fr auto auto;min-height:54px;padding-top:calc(7px 
 .sectionhead{margin:10px 16px 8px;padding-top:10px}
 .recipeName{font-size:18px}.description{font-size:9px}
 .recipes{padding:0 16px 8px;gap:6px}.recipe{flex-basis:88px;min-height:44px;border-radius:8px}
-.gallery{margin:8px 16px 0;padding-top:10px}.gallery-heading{display:flex;align-items:center;justify-content:space-between}.gallery-heading button{background:none;border:0;color:var(--orange);font-size:8px;letter-spacing:1px;padding:5px 0}.gallery.expanded #photos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}.gallery.expanded .photoitem{width:auto;min-width:0}.gallery.expanded .photoitem img{width:100%;height:auto;aspect-ratio:3/4}
+.gallery{margin:8px 16px 0;padding-top:10px}.gallery-heading{display:flex;align-items:center;justify-content:space-between}.gallery-heading button{background:none;border:0;color:var(--orange);font-size:8px;letter-spacing:1px;padding:5px 0}.gallery.expanded #photos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}.gallery.expanded .photoitem{width:auto;min-width:0}.gallery.expanded .photoitem img{width:100%;height:auto;aspect-ratio:4/3}
 #photos{padding:8px 0 3px}.photoitem{flex-basis:66px;width:66px}.photoitem img{width:66px;height:82px;border-radius:6px}
 .settings-drawer{background:#19191b;border-color:#38383a;max-height:86svh;padding-left:18px;padding-right:18px}
 .settings-drawer .panel,.settings-drawer .camera-panel{border-color:#38383a}
@@ -217,7 +217,7 @@ body{background:#0b0b0c;color:#f2f2f0}
 .top-actions{display:flex;align-items:center;gap:8px}
 .top-actions .status{font-size:7px;max-width:62px;text-align:right;line-height:1.3}
 #settingsOpen{border:0;background:none;color:#eee;font-size:24px;padding:4px 2px}
-.viewfinder{width:100%;height:auto;max-height:min(62svh,720px);min-height:0;aspect-ratio:3/4;border-radius:13px;background:#171719}
+.viewfinder{width:100%;height:auto;max-height:min(62svh,720px);min-height:0;aspect-ratio:4/3;border-radius:13px;background:#171719}
 #video{display:none}
 #previewCanvas{display:none}
 .viewlabel{top:13px;display:flex;justify-content:space-between;gap:8px}
@@ -410,7 +410,7 @@ body.zen #settingsOpen{display:none}
 
 <div class="panel">
  <div class="paneltop"><div class="eyebrow">PHOTO FORMAT</div><span class="eyebrow" id="formatSupport">JPEG · BROWSER OUTPUT</span></div>
- <div class="setting-row"><label for="aspectRatio">Aspect ratio</label><select id="aspectRatio"><option value="3/4" selected>3:4 · PORTRAIT</option><option value="4/3">4:3 · CLASSIC</option><option value="16/9">16:9 · CINEMA</option><option value="1/1">1:1 · SQUARE</option><option value="3/2">3:2 · PHOTO</option></select></div>
+ <div class="setting-row"><label for="aspectRatio">Aspect ratio</label><select id="aspectRatio"><option value="4/3" selected>4:3 · CLASSIC</option><option value="3/4">3:4 · PORTRAIT</option><option value="16/9">16:9 · CINEMA</option><option value="1/1">1:1 · SQUARE</option><option value="3/2">3:2 · PHOTO</option></select></div>
  <div class="setting-row"><label for="outputQuality">JPEG quality</label><select id="outputQuality"><option value="0.98">MAXIMUM</option><option value="0.94">HIGH</option><option value="0.88">BALANCED</option></select></div>
  <div class="setting-row"><label>Camera resolution</label><output id="resolutionSetting">Available after camera starts</output></div>
  <p class="capability-note">The browser saves JPEG images at the active camera stream resolution. HEIF, TIFF, ProRAW and native sensor RAW are not exposed by this web camera.</p>
@@ -471,7 +471,7 @@ const previewCanvas=document.getElementById('previewCanvas');
 const previewCtx=previewCanvas.getContext('2d',{willReadFrequently:true});
 let previewTimer=null;
 const message=document.getElementById('message');
-let stream=null,facing='environment',current='gold',photoNumber=0,activeAspectRatio=3/4;
+let stream=null,facing='environment',current='gold',photoNumber=0,activeAspectRatio=4/3;
 let db=null, selectedPhoto=null, galleryUrls=[];
 let cameraCaps={}, torchOn=false, gridOn=true, selfTimer=0, jpegQuality=0.98, focusModeIndex=0, shutterBusy=false;
 let focusModes=[];
@@ -950,7 +950,7 @@ window.addEventListener('pagehide',()=>{
 });
 
 // ===== V3 CAMERA SYSTEM =====
-const v3State={priority:'A',aspect:'3/4',zen:false,reticle:false,wbPreset:'AWB',processing:'standard',lutName:'None',lutIntensity:100,lutMode:'baked',lut:null,geotagging:false};
+const v3State={priority:'A',aspect:'4/3',zen:false,reticle:false,wbPreset:'AWB',processing:'standard',lutName:'None',lutIntensity:100,lutMode:'baked',lut:null,geotagging:false};
 const panel=$('controlPanel'), panelBody=$('controlPanelBody');
 function openPanel(title,content){
  $('controlPanelTitle').textContent=title.toUpperCase();
@@ -1154,12 +1154,12 @@ function setAspect(value){
  activeAspectRatio=Number(value.split('/')[0])/Number(value.split('/')[1]);
  v3State.aspect=value;$('viewFormat').textContent='JPEG · '+value.replace('/',' : ');$('topFormat').textContent=$('topFormat').textContent.replace(/· [^·]+$/,'· '+value);
  $('aspectRatio').value=value;
- const [w,h]=value.split('/').map(Number);$('viewfinder').style.aspectRatio=`${h}/${w}`;
+ const [w,h]=value.split('/').map(Number);$('viewfinder').style.aspectRatio=`${w}/${h}`;
  updateExposureReadouts();
 }
 $('aspectRatio').addEventListener('change',e=>setAspect(e.target.value));
-// Portrait 3:4 is the default composition on every fresh launch.
-setAspect('3/4');
+// Classic 4:3 is the default composition on every fresh launch.
+setAspect('4/3');
 $('outputQuality').addEventListener('change',e=>{jpegQuality=Number(e.target.value);$('qualityBtn').textContent='JPEG · '+(jpegQuality>=.98?'MAX':jpegQuality>=.94?'HIGH':'BALANCED');persistCameraPrefs();});
 
 function renderOpticsPanel(){
