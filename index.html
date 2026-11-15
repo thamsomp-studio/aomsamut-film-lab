@@ -401,6 +401,11 @@ body.zen #settingsOpen{display:none}
 /* V9 high-detail capture status */
 #resolutionSetting{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 
+
+.gallery-head-actions{display:flex;align-items:center;gap:12px}
+.gallery-heading .gallery-head-actions button#importNativePhoto{color:var(--orange);font-weight:700}
+#nativePhotoInput{display:none}
+
 </style>
 </head>
 <body>
@@ -495,8 +500,8 @@ body.zen #settingsOpen{display:none}
  <div class="paneltop"><div class="eyebrow">PHOTO FORMAT</div><span class="eyebrow" id="formatSupport">JPEG · BROWSER OUTPUT</span></div>
  <div class="setting-row"><label for="aspectRatio">Aspect ratio</label><select id="aspectRatio"><option value="3/4" selected>3:4 · PORTRAIT</option><option value="4/3">4:3 · CLASSIC</option><option value="16/9">16:9 · CINEMA</option><option value="1/1">1:1 · SQUARE</option><option value="3/2">3:2 · PHOTO</option></select></div>
  <div class="setting-row"><label for="outputQuality">JPEG quality</label><select id="outputQuality"><option value="0.98">MAXIMUM</option><option value="0.94">HIGH</option><option value="0.88">BALANCED</option></select></div>
- <div class="setting-row"><label>Camera resolution</label><output id="resolutionSetting">Available after camera starts</output></div>
- <p class="capability-note">The app requests a high-resolution still photo when your browser supports it; otherwise it saves at the actual camera stream resolution. HEIF, TIFF, ProRAW and native sensor RAW are not exposed by this web camera.</p>
+ <div class="setting-row"><label>Direct capture resolution</label><output id="resolutionSetting">Available after camera starts</output></div>
+ <p class="capability-note">Direct shutter capture is automatic. AOMSAMUT requests the highest still-photo size Safari exposes and otherwise uses the highest live camera stream resolution available. Safari does not expose the iPhone 15 Pro native 48 MP ProRAW pipeline to web apps.</p>
 </div>
 <div class="panel">
  <div class="paneltop"><div class="eyebrow">CAMERA BEHAVIOUR</div></div>
@@ -916,12 +921,22 @@ async function startCamera(){
  try{
   if(stream)stream.getTracks().forEach(t=>t.stop());
   stream=await navigator.mediaDevices.getUserMedia({
-   audio:false,video:{facingMode:{ideal:facing},width:{ideal:3840},height:{ideal:2160},frameRate:{ideal:30,max:30}}
+   audio:false,video:{facingMode:{ideal:facing},width:{ideal:3840},height:{ideal:2160},frameRate:{ideal:30,max:30},resizeMode:{ideal:'none'}}
   });
   video.srcObject=stream;
   await video.play();
   torchOn=false;$('torchBtn').textContent='FLASH OFF';$('torchBtn').classList.remove('active');
   setControlSupport();
+  // Ask the active iPhone camera for continuous focus/exposure/white balance
+  // when Safari exposes these controls. Unsupported modes are safely ignored.
+  try{
+   const caps=stream.getVideoTracks()[0]?.getCapabilities?.()||{};
+   const advanced={};
+   if(caps.focusMode?.includes('continuous'))advanced.focusMode='continuous';
+   if(caps.exposureMode?.includes('continuous'))advanced.exposureMode='continuous';
+   if(caps.whiteBalanceMode?.includes('continuous'))advanced.whiteBalanceMode='continuous';
+   if(Object.keys(advanced).length)await stream.getVideoTracks()[0].applyConstraints({advanced:[advanced]});
+  }catch(e){console.info('Some automatic camera controls are managed by Safari.',e);}
   video.style.display='block';
   previewCanvas.style.display='block';
   $('placeholder').style.display='none';
