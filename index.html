@@ -1,0 +1,303 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#171817">
+<title>AOMSAMUT FILM LAB</title>
+<style>
+:root {
+  --bg:#171817; --cream:#f5efe2; --orange:#f26a35;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:var(--cream);
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+  min-height:100vh; overflow-x:hidden;
+}
+.app {
+  max-width:600px; margin:auto; min-height:100vh;
+  padding:env(safe-area-inset-top) 18px calc(22px + env(safe-area-inset-bottom));
+  display:flex; flex-direction:column;
+}
+header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:20px 2px 18px;
+}
+.brand { font-size:17px; letter-spacing:3px; font-weight:700; }
+.brand span { color:var(--orange); }
+.subbrand { font-size:9px; letter-spacing:2px; color:#999; margin-top:5px; }
+.status { font-size:10px; color:#aaa; letter-spacing:1px; }
+.viewfinder {
+  position:relative; width:100%; aspect-ratio:3/4;
+  background:#292b28; border-radius:5px; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+#video {
+  width:100%; height:100%; object-fit:cover; display:none;
+}
+#placeholder {
+  text-align:center; padding:25px; color:#aaa;
+}
+#placeholder .camera-icon { font-size:45px; margin-bottom:16px; }
+#placeholder p { font-size:12px; line-height:1.7; }
+#grain {
+  pointer-events:none; position:absolute; inset:0; opacity:.13;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+  mix-blend-mode:soft-light;
+}
+.grid-lines {
+  position:absolute; inset:0; pointer-events:none; opacity:.23;
+  background:
+    linear-gradient(90deg,transparent 33.2%,#fff 33.33%,transparent 33.5%,transparent 66.5%,#fff 66.66%,transparent 66.8%),
+    linear-gradient(0deg,transparent 33.2%,#fff 33.33%,transparent 33.5%,transparent 66.5%,#fff 66.66%,transparent 66.8%);
+}
+.view-label {
+  position:absolute; left:13px; top:13px; font-size:9px;
+  letter-spacing:2px; text-shadow:0 1px 4px #000;
+}
+.view-bottom {
+  position:absolute; bottom:13px; left:13px; right:13px;
+  display:flex; justify-content:space-between; font-size:9px;
+  letter-spacing:1px; text-shadow:0 1px 4px #000;
+}
+.recipe-heading {
+  display:flex; justify-content:space-between; align-items:center;
+  margin:24px 0 12px;
+}
+.section-label { font-size:10px; letter-spacing:2px; color:#aaa; }
+.recipe-name { font-family:Georgia,serif; font-size:23px; }
+.recipe-description { color:#999; font-size:11px; margin-top:5px; }
+.recipes {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
+}
+.recipe {
+  border:1px solid #454641; background:#222320; color:#ddd;
+  padding:12px 4px; border-radius:4px; min-height:63px;
+  font-size:10px; letter-spacing:.3px;
+}
+.recipe.active { border:1px solid var(--orange); color:var(--orange); }
+.recipe small { display:block; color:#888; font-size:8px; margin-top:5px; }
+.controls {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-top:25px;
+}
+.tool {
+  background:none; border:0; color:#ddd; font-size:10px;
+  letter-spacing:1px; padding:10px 4px;
+}
+.shutter {
+  width:76px; height:76px; border-radius:50%;
+  background:var(--orange); border:5px solid #f6d3bd;
+  box-shadow:0 0 0 5px #ffffff20;
+}
+.shutter:active { transform:scale(.94); }
+button { cursor:pointer; -webkit-tap-highlight-color:transparent; }
+#message {
+  text-align:center; font-size:10px; color:#999;
+  min-height:25px; padding-top:17px; line-height:1.5;
+}
+.gallery { margin-top:25px; border-top:1px solid #383a35; padding-top:16px; }
+.gallery-title { font-size:10px; letter-spacing:2px; color:#aaa; }
+#photos { display:flex; gap:9px; overflow-x:auto; padding:12px 0; }
+#photos img { width:85px; height:110px; object-fit:cover; border-radius:3px; }
+.footer { text-align:center; margin-top:auto; padding-top:22px; color:#777; font-size:9px; letter-spacing:2px; }
+#captureCanvas { display:none; }
+@media(min-width:600px) {
+  .app { padding-left:30px; padding-right:30px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <div class="brand">AOMSAMUT<span>.</span> FILM LAB</div>
+      <div class="subbrand">A DIGITAL FILM CAMERA</div>
+    </div>
+    <div class="status" id="cameraStatus">CAMERA OFF</div>
+  </header>
+
+  <div class="viewfinder">
+    <video id="video" autoplay playsinline muted></video>
+    <div id="placeholder">
+      <div class="camera-icon">◎</div>
+      <div style="letter-spacing:3px;font-size:11px">YOUR FILM JOURNEY</div>
+      <p>Start the camera to see your world<br>through a film-inspired lens.</p>
+    </div>
+    <div class="grid-lines"></div>
+    <div class="view-label">AOMSAMUT · LIVE VIEW</div>
+    <div class="view-bottom">
+      <span id="viewRecipe">KODAK GOLD 200</span>
+      <span>3:4</span>
+    </div>
+    <div id="grain"></div>
+  </div>
+
+  <div class="recipe-heading">
+    <div>
+      <div class="section-label">FILM SIMULATION</div>
+      <div class="recipe-name" id="recipeTitle">Kodak Gold 200</div>
+      <div class="recipe-description" id="recipeDescription">Warm highlights · Golden tones · Soft contrast</div>
+    </div>
+    <div class="section-label">01 / 04</div>
+  </div>
+
+  <div class="recipes">
+    <button class="recipe active" data-recipe="gold">GOLD 200<small>KODAK STYLE</small></button>
+    <button class="recipe" data-recipe="ultra">ULTRAMAX<small>KODAK STYLE</small></button>
+    <button class="recipe" data-recipe="fuji">FUJI 400<small>FUJI STYLE</small></button>
+    <button class="recipe" data-recipe="chrome">CHROME<small>FUJI STYLE</small></button>
+  </div>
+
+  <div class="controls">
+    <button class="tool" id="startBtn">START<br>CAMERA</button>
+    <button class="shutter" id="shutter" aria-label="Take photo"></button>
+    <button class="tool" id="switchBtn">FLIP<br>CAMERA</button>
+  </div>
+
+  <div id="message">Tap START CAMERA to begin.</div>
+
+  <div class="gallery">
+    <div class="gallery-title">YOUR FILM ROLL</div>
+    <div id="photos"><span style="font-size:11px;color:#777">Your photographs will appear here.</span></div>
+  </div>
+
+  <div class="footer">AOMSAMUT FILM LAB · MADE WITH CARE</div>
+</div>
+<canvas id="captureCanvas"></canvas>
+
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('captureCanvas');
+const ctx = canvas.getContext('2d');
+const placeholder = document.getElementById('placeholder');
+const message = document.getElementById('message');
+const cameraStatus = document.getElementById('cameraStatus');
+let stream = null;
+let facing = 'environment';
+let currentRecipe = 'gold';
+let photoCount = 0;
+
+const recipes = {
+  gold: {
+    name:'Kodak Gold 200',
+    description:'Warm highlights · Golden tones · Soft contrast',
+    filter:'sepia(.13) saturate(1.22) contrast(.94) brightness(1.06) hue-rotate(-7deg)'
+  },
+  ultra: {
+    name:'Kodak Ultramax 400',
+    description:'Vivid colours · Sunny warmth · Punchy contrast',
+    filter:'saturate(1.38) contrast(1.08) brightness(1.02) sepia(.06)'
+  },
+  fuji: {
+    name:'Fujifilm 400',
+    description:'Fresh greens · Cool shadows · Natural colour',
+    filter:'saturate(1.08) contrast(.96) brightness(1.04) hue-rotate(5deg)'
+  },
+  chrome: {
+    name:'Classic Chrome',
+    description:'Muted colour · Gentle contrast · Editorial mood',
+    filter:'saturate(.78) contrast(1.13) brightness(1.02) sepia(.08)'
+  }
+};
+
+function setRecipe(key) {
+  currentRecipe = key;
+  const recipe = recipes[key];
+  video.style.filter = recipe.filter;
+  document.getElementById('recipeTitle').textContent = recipe.name;
+  document.getElementById('recipeDescription').textContent = recipe.description;
+  document.getElementById('viewRecipe').textContent = recipe.name.toUpperCase();
+  document.querySelectorAll('.recipe').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.recipe === key);
+  });
+  document.querySelector('.recipe-heading .section-label:last-child').textContent =
+    String(Object.keys(recipes).indexOf(key)+1).padStart(2,'0')+' / 04';
+}
+
+document.querySelectorAll('.recipe').forEach(btn => {
+  btn.addEventListener('click', () => setRecipe(btn.dataset.recipe));
+});
+
+async function startCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    message.textContent = 'Camera unavailable. Open this site in Safari using HTTPS.';
+    return;
+  }
+  try {
+    if (stream) stream.getTracks().forEach(track => track.stop());
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio:false,
+      video:{
+        facingMode:{ideal:facing},
+        width:{ideal:1920},
+        height:{ideal:1440}
+      }
+    });
+    video.srcObject = stream;
+    await video.play();
+    video.style.display = 'block';
+    placeholder.style.display = 'none';
+    cameraStatus.textContent = 'CAMERA READY';
+    message.textContent = 'Choose a film recipe and take your photograph.';
+  } catch(error) {
+    console.error(error);
+    message.textContent = 'Camera permission was not granted. Check Safari camera settings.';
+    cameraStatus.textContent = 'CAMERA OFF';
+  }
+}
+
+document.getElementById('startBtn').addEventListener('click', startCamera);
+
+document.getElementById('switchBtn').addEventListener('click', async () => {
+  facing = facing === 'environment' ? 'user' : 'environment';
+  if (stream) await startCamera();
+  else message.textContent = 'Camera direction selected. Start the camera.';
+});
+
+function takePhoto() {
+  if (!stream || video.readyState < 2) {
+    message.textContent = 'Please start the camera first.';
+    return;
+  }
+  const width = video.videoWidth;
+  const height = video.videoHeight;
+  canvas.width = width;
+  canvas.height = height;
+  ctx.save();
+  ctx.filter = recipes[currentRecipe].filter;
+  if (facing === 'user') {
+    ctx.translate(width,0);
+    ctx.scale(-1,1);
+  }
+  ctx.drawImage(video,0,0,width,height);
+  ctx.restore();
+
+  canvas.toBlob(async blob => {
+    if (!blob) {
+      message.textContent = 'Could not create photo. Please try again.';
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    photoCount++;
+    const image = document.createElement('img');
+    image.src = url;
+    image.alt = recipes[currentRecipe].name;
+    document.getElementById('photos').prepend(image);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'AOMSAMUT-' + currentRecipe + '-' + photoCount + '.jpg';
+    link.click();
+
+    message.textContent = 'Photo captured! Save it to Photos from your download or share options.';
+  },'image/jpeg',0.94);
+}
+document.getElementById('shutter').addEventListener('click',takePhoto);
+
+setRecipe('gold');
+</script>
+</body>
+</html>
