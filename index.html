@@ -318,6 +318,27 @@ body.zen #settingsOpen{display:none}
 @media(min-width:621px){.app{max-width:620px}.viewfinder{max-height:min(62svh,720px)}}
 @media(max-width:380px){.app{padding-left:9px;padding-right:9px}.viewfinder{max-height:58svh}.camera-topbar{padding-left:8px;padding-right:8px}.top-readout .brand{font-size:10px}.shutter{width:66px;height:66px}.action-plate{gap:4px;padding:8px 6px}.action-plate button{min-height:44px}}
 
+
+/* V6 · Aspect-ratio-locked viewfinder: preview, grid and capture share one frame. */
+.viewfinder{
+  width:100% !important;
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  aspect-ratio:var(--finder-ratio, 4 / 3) !important;
+  box-sizing:border-box;
+}
+#previewCanvas{
+  position:absolute;
+  inset:0;
+  display:none;
+  width:100%;
+  height:100%;
+  object-fit:fill;
+}
+/* The source is cropped to the selected ratio before it reaches this canvas,
+   so filling the frame never stretches or distorts the photograph. */
+body.zen .viewfinder{height:calc(100svh - 112px) !important;max-height:none !important;min-height:0 !important;aspect-ratio:auto !important}
 </style>
 </head>
 <body>
@@ -325,7 +346,7 @@ body.zen #settingsOpen{display:none}
 <div class="camera-stage">
 <header class="camera-topbar">
  <button class="round-control" id="looksOpen" type="button" aria-label="Open looks">◉</button>
- <div class="top-readout"><div class="brand">AOMSAMUT<span>.</span> FILM LAB</div><div class="subbrand" id="topFormat">JPEG · AUTO RES · 3:4</div></div>
+ <div class="top-readout"><div class="brand">AOMSAMUT<span>.</span> FILM LAB</div><div class="subbrand" id="topFormat">JPEG · AUTO RES · 4:3</div></div>
  <div class="top-actions"><span class="status" id="status">CAMERA OFF</span><button id="settingsOpen" type="button" aria-label="Open camera settings">☰</button></div>
 </header>
 
@@ -699,7 +720,7 @@ function updatePreview(){
 }
 function renderLivePreview(){
  if(!stream || video.readyState<2 || !video.videoWidth) return;
- // Render a sharper 3:4 preview. The previous 360x480 buffer was too small
+ // Render a high-resolution preview cropped to the selected aspect ratio.
  // for a modern iPhone display and looked visibly soft when enlarged.
  const maxPreviewHeight=1200;
  const sourceWidth=video.videoWidth, sourceHeight=video.videoHeight;
@@ -1170,10 +1191,19 @@ function toggleZen(force){
  else{$('start').innerHTML=stream?'RESTART CAMERA':'START CAMERA';message.textContent='Camera controls restored.';}
 }
 function setAspect(value){
- activeAspectRatio=Number(value.split('/')[0])/Number(value.split('/')[1]);
- v3State.aspect=value;$('viewFormat').textContent='JPEG · '+value.replace('/',' : ');$('topFormat').textContent=$('topFormat').textContent.replace(/· [^·]+$/,'· '+value);
+ const [w,h]=value.split('/').map(Number);
+ if(!w||!h)return;
+ activeAspectRatio=w/h;
+ v3State.aspect=value;
+ const ratioLabel=`${w}:${h}`;
+ $('viewFormat').textContent='JPEG · '+ratioLabel;
+ $('topFormat').textContent=$('topFormat').textContent.replace(/· [^·]+$/,'· '+ratioLabel);
  $('aspectRatio').value=value;
- const [w,h]=value.split('/').map(Number);$('viewfinder').style.aspectRatio=`${w}/${h}`;
+ const finder=$('viewfinder');
+ finder.style.setProperty('--finder-ratio',`${w} / ${h}`);
+ finder.style.aspectRatio=`${w} / ${h}`;
+ // Re-render immediately so the displayed crop matches the newly sized frame.
+ if(stream && video.readyState>=2)renderLivePreview();
  updateExposureReadouts();
 }
 $('aspectRatio').addEventListener('change',e=>setAspect(e.target.value));
