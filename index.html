@@ -382,6 +382,21 @@ body.zen #settingsOpen{display:none}
  .viewfinder{max-width:100%}
 }
 
+
+/* V8 — shutter controls sit directly beneath the live viewfinder */
+.controls{
+ margin:6px 2px 10px !important;
+ min-height:82px !important;
+ padding:0 8px !important;
+ grid-template-columns:minmax(0,1fr) 88px minmax(0,1fr) !important;
+ gap:8px !important;
+}
+.shutter{width:76px !important;height:76px !important}
+@media(max-width:380px){
+ .controls{min-height:76px !important;grid-template-columns:minmax(0,1fr) 78px minmax(0,1fr) !important;margin:5px 0 9px !important}
+ .shutter{width:68px !important;height:68px !important}
+}
+
 </style>
 </head>
 <body>
@@ -403,6 +418,11 @@ body.zen #settingsOpen{display:none}
  <div class="reticle" id="reticle" aria-hidden="true"></div>
  <div class="quick-actions"><button id="quickWB" type="button">AWB</button><button id="quickFocus" type="button">AF</button></div>
 </div>
+<div class="controls">
+ <button class="tool" id="start">START CAMERA</button>
+ <button class="shutter" id="shutter" aria-label="Take photograph"></button>
+ <button class="tool" id="flip">FLIP CAMERA</button>
+</div>
 <div class="camera-readouts">
  <button id="meterBtn" class="readout-button" type="button"><span class="readout-value" id="meterValue">—</span><small>METER</small></button>
  <button id="exposureOpen" class="readout-button" type="button"><span class="readout-value" id="ssReadout">AUTO</span><small>SS</small></button>
@@ -417,11 +437,6 @@ body.zen #settingsOpen{display:none}
  </div>
 </div>
 
-<div class="controls">
- <button class="tool" id="start">START CAMERA</button>
- <button class="shutter" id="shutter" aria-label="Take photograph"></button>
- <button class="tool" id="flip">FLIP CAMERA</button>
-</div>
 <div class="action-plate" aria-label="Camera action controls">
  <button id="looksBtn" type="button"><span class="plate-icon">⬡</span><small>LOOKS</small></button>
  <button id="colorBtn" type="button"><span class="plate-icon">◉</span><small>COLOR</small></button>
